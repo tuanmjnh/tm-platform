@@ -1,0 +1,472 @@
+# TM Platform — Remaining Phases Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Finish the TM platform upgrade — publishable shared packages, a hosted Hub that refuses connections it cannot reach, and one AI request contract shared by all three apps — without regressing the live apps.
+
+**Architecture:** The Hub stays the control plane (registry, catalog, grants, relay). Satellites resolve AI through one gateway that routes by an *explicit* mode (`hub` | `app` | `local`), never by sniffing the URL. Shared code ships as `@tuanmjnh/*` packages pinned by version. `tm-studio` keeps its Electron main-process gateway (it already calls providers locally) but swaps its hand-rolled HTTP for `@tuanmjnh/tm-ai-client` so all three apps share one error/stream contract.
+
+**Tech Stack:** Nuxt 4 + Nitro, Nuxt UI v4, Vue 3, Electron (CommonJS main), Supabase Postgres, pnpm workspaces, tsup, `node --test`, tsx.
+
+**Spec:** `D:/Applications/tm-hub/docs/tm-platform-multi-app-upgrade-plan.md` §6–§11, plus `D:/Applications/tm-platform/docs/phase-0-audit.md`.
+
+## Global Constraints
+
+- Demo/local only. No Vercel deploy, no npm publish, no hosted env change without explicit owner approval inside the task.
+- Never copy plaintext provider secrets between repos. A key moves only through the Hub vault decrypt path or the OS keychain slot, and is never printed.
+- Do not run `pnpm seed` in `tm-hub`: it rewrites satellite relay secrets on the shared Supabase project.
+- Never weaken a test to reach PASS. An unmet criterion is reported BLOCKED with the measurement.
+- Stage exact files only. `tm-tools` and `tm-hub` trees contain unrelated user WIP; never `git add -A`.
+- No code comments unless the WHY is non-obvious. English in code, Vietnamese only in `i18n/locales/vi.json`.
+- Verify with the repo's own gates: `tm-hub` = `node tests/run-tests.mjs` + `pnpm typecheck`; `tm-tools` = `pnpm test` + `pnpm typecheck`; `tm-studio` = `pnpm test` + `pnpm typecheck`; `tm-platform` = `pnpm typecheck && pnpm test && pnpm build`.
+
+---
+
+## Phase A — Publish the shared packages (unblocks every other consumer)
+
+Why first: `tm-tools` currently depends on `@tuanmjnh/tm-ai-client` via `file:../tm-platform/...`. That resolves on this machine only; CI, Electron packaging on another box, and `tm-studio` cannot use it. Everything downstream (Phase B, C) wants a real version.
+
+### Task A1: Confirm registry access and scope ownership
+
+**Files:** none modified.
+
+- [ ] **Step 1: Confirm the npm account can publish to the scope**
+
+Run: `npm whoami`
+Expected: a username. If it prints `E401`, stop and ask the owner to run `npm login` — this is an owner action, not an agent action.
+
+- [ ] **Step 2: Confirm the scope is free**
+
+Run: `npm view @tuanmjnh/tm-types version`
+Expected: `E404` (free). If it returns a version, the name is taken — stop and ask the owner to choose another scope.
+
+- [ ] **Step 3: Record the decision**
+
+Add a line to `docs/plans/decisions.md` (create it): `2026-11-12 — publish @tuanmjnh/* public to npmjs.com. Owner: <whoami>.` Commit:
+
+```bash
+git add docs/plans/decisions.md
+git commit -m "docs: record npm scope decision"
+```
+
+### Task A2: Add a changeset and cut 0.1.0
+
+**Files:**
+- Create: `.changeset/initial-release.md`
+- Modify: `packages/*/package.json` (version 0.0.1 → 0.1.0)
+
+- [ ] **Step 1: Write the changeset**
+
+```markdown
+---
+"@tuanmjnh/tm-types": minor
+"@tuanmjnh/tm-validators": minor
+"@tuanmjnh/tm-utils": minor
+"@tuanmjnh/tm-ai-client": minor
+---
+
+Initial public release: shared contracts, Zod schemas, pure utilities and an
+OpenAI-compatible AI client with SSE streaming, model discovery, normalized
+errors and a local-mode policy hook. No secret storage in any package.
+```
+
+- [ ] **Step 2: Apply the version bump**
+
+Run: `pnpm version-packages`
+Expected: all four packages report `0.1.0` in `package.json`.
+
+- [ ] **Step 3: Rebuild and verify the tarballs**
+
+Run: `pnpm build && pnpm -r exec npm pack --dry-run`
+Expected: build exit 0; each pack lists only `dist/**`, `package.json`, `README.md`, `LICENSE` (if present) — no `src/`, no `node_modules`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add .changeset packages/*/package.json pnpm-lock.yaml
+git commit -m "chore: release 0.1.0 of the shared packages"
+```
+
+### Task A3: Publish (owner-gated)
+
+**Files:** none.
+
+- [ ] **Step 1: Ask the owner for an explicit go/no-go**
+
+Publishing is irreversible-ish (unpublish is restricted after 72h) and visible to the world. Do not run the publish until the owner says yes in the conversation.
+
+- [ ] **Step 2: Publish**
+
+```bash
+pnpm -r exec npm publish --access public
+```
+
+- [ ] **Step 3: Verify registry state**
+
+```bash
+npm view @tuanmjnh/tm-types version
+npm view @tuanmjnh/tm-ai-client version
+```
+
+Expected: `0.1.0` for both.
+
+### Task A4: Switch consumers from `file:` to a pinned version
+
+**Files:**
+- Modify: `tm-tools/package.json` (dependency line only)
+- Modify: `tm-studio/package.json` (add dependency)
+
+- [ ] **Step 1: Edit the two dependency entries**
+
+`tm-tools/package.json`:
+```json
+"@tuanmjnh/tm-ai-client": "^0.1.0"
+```
+
+`tm-studio/package.json` (add under `dependencies`):
+```json
+"@tuanmjnh/tm-ai-client": "^0.1.0"
+```
+
+- [ ] **Step 2: Install and confirm resolution**
+
+Run in each repo: `pnpm install`, then `node -e "console.log(require.resolve('@tuanmjnh/tm-ai-client'))"`
+Expected: a path inside the repo's own `node_modules/.pnpm`, not `../tm-platform`.
+
+- [ ] **Step 3: Re-run gates**
+
+Run: `pnpm typecheck && pnpm test` in `tm-tools`.
+Expected: exit 0 both, 68/68 specs pass.
+
+- [ ] **Step 4: Commit each repo separately**
+
+```bash
+# tm-tools
+git add package.json pnpm-lock.yaml
+git commit -m "chore: depend on the published tm-ai-client 0.1.0"
+
+# tm-studio
+git add package.json pnpm-lock.yaml
+git commit -m "chore: add the published tm-ai-client 0.1.0"
+```
+
+---
+
+## Phase B — `tm-studio` AI on the shared client (plan Phase 7)
+
+Facts established by inspection: `tm-studio` never relays AI through the Hub in the desktop build. The renderer calls `window.electronAPI.tools.aiGateway.*` → IPC → `electron/tools/ai-gateway.cjs` in the main process, which calls the provider directly. The web/dev build falls back to `/api/v1/ai/relay/*`. So the hosted-Hub loopback defect cannot reach it; the remaining work is contract unification, not a bug fix.
+
+### Task B1: Pin the current gateway behaviour with tests
+
+**Files:**
+- Test: `tm-studio/electron/tools/ai-gateway.test.mjs` (extend)
+
+- [ ] **Step 1: Add a test that pins the error contract for an unreachable endpoint**
+
+`complete(args, opts)` reads configuration from `process.env` via `taskConfig(task)`; it does **not** take an env object. Existing tests save/restore `process.env` around the call, so follow that pattern.
+
+```js
+test('an unreachable endpoint reports ai.network, never a raw fetch error', async () => {
+  const gw = await import('./ai-gateway.cjs')
+  const saved = { ...process.env }
+  Object.assign(process.env, {
+    AI_PROVIDER: 'custom',
+    AI_BASE_URL: 'http://127.0.0.1:1/v1',
+    AI_API_KEY: 'x',
+    AI_MODEL: 'm'
+  })
+  try {
+    const err = await gw.complete({ messages: [{ role: 'user', content: 'hi' }] }).catch(e => e)
+    assert.ok(err instanceof gw.AIGatewayError)
+    assert.equal(err.code, 'ai.network')
+    assert.ok(!String(err.message).includes('ECONNREFUSED'))
+  } finally {
+    for (const key of Object.keys(process.env)) {
+      if (!(key in saved)) delete process.env[key]
+    }
+    Object.assign(process.env, saved)
+  }
+})
+```
+
+- [ ] **Step 2: Run it and confirm it passes today**
+
+Run: `cd tm-studio && node --test electron/tools/ai-gateway.test.mjs`
+Expected: PASS. If it fails, record the actual code/message in the task notes before continuing — that is the baseline the refactor must preserve.
+
+- [ ] **Step 3: Commit the pin**
+
+```bash
+git add electron/tools/ai-gateway.test.mjs
+git commit -m "test(ai): pin the desktop gateway error contract"
+```
+
+### Task B2: Route provider HTTP through `@tuanmjnh/tm-ai-client`
+
+**Files:**
+- Modify: `tm-studio/electron/tools/ai-gateway.cjs` (`complete`, `listModels`)
+- Test: `tm-studio/electron/tools/ai-gateway.test.mjs`
+
+**Interfaces:**
+- Consumes: `createAIClient({ endpoint: { provider, baseUrl, apiKey, mode }, assertModeAllowed })` and `client.chat({ model, messages, maxTokens, temperature })` from `@tuanmjnh/tm-ai-client`.
+- Produces: unchanged `complete(args, opts)` / `listModels(args, opts)` signatures so `registerAiGateway` and the preload namespace keep working.
+
+- [ ] **Step 1: Add a failing test for a non-2xx provider reply**
+
+The gateway already defines `ai.api-error` for an upstream rejection; `AIGatewayError(code, message, extra)` spreads `extra` onto the instance. Reuse those names — do not invent `ai.unauthorized`.
+
+```js
+test('a 401 from the provider maps to ai.api-error with no key in the message', async () => {
+  const gw = await import('./ai-gateway.cjs')
+  const saved = { ...process.env }
+  Object.assign(process.env, {
+    AI_PROVIDER: 'custom',
+    AI_BASE_URL: 'http://127.0.0.1:9/v1',
+    AI_API_KEY: 'secret-key-value',
+    AI_MODEL: 'm'
+  })
+  try {
+    const err = await gw.complete(
+      { messages: [{ role: 'user', content: 'hi' }] },
+      { fetch: async () => new Response('{"error":{"message":"Invalid API key"}}', { status: 401 }) }
+    ).catch(e => e)
+    assert.ok(err instanceof gw.AIGatewayError)
+    assert.equal(err.code, 'ai.api-error')
+    assert.equal(err.status, 401)
+    assert.ok(!JSON.stringify(err).includes('secret-key-value'))
+  } finally {
+    for (const key of Object.keys(process.env)) {
+      if (!(key in saved)) delete process.env[key]
+    }
+    Object.assign(process.env, saved)
+  }
+})
+```
+
+- [ ] **Step 2: Run it and confirm it fails**
+
+Run: `node --test electron/tools/ai-gateway.test.mjs`
+Expected: FAIL — either the code differs or the injected `fetch` is ignored.
+
+- [ ] **Step 3: Replace the hand-rolled request with the shared client**
+
+Inside `complete()`, keep every existing guard (base URL required, keyless local allowed, rate limit, per-task config) and replace only the request/response/error section:
+
+```js
+const { createAIClient, AIClientError } = require('@tuanmjnh/tm-ai-client')
+
+function toGatewayError(err) {
+  if (err instanceof AIClientError) {
+    const map = {
+      'ai.network': 'ai.network',
+      'ai.rate-limited': 'ai.rate-limited',
+      'ai.timeout': 'ai.timeout',
+      'ai.no-key': 'ai.no-key',
+      'ai.no-base-url': 'ai.no-base-url',
+      'ai.no-model': 'ai.no-model',
+      'ai.aborted': 'ai.timeout',
+      'ai.bad-shape': 'ai.bad-shape',
+      'ai.http-error': 'ai.api-error'
+    }
+    return new AIGatewayError(map[err.code] || 'ai.api-error', err.message, { status: err.status })
+  }
+  return new AIGatewayError('ai.network', 'Provider is unreachable')
+}
+```
+
+`ai.network` must map to itself — Task B1 asserts it survives the refactor. Keep every code the gateway already exposes (`ai.api-error`, `ai.bad-shape`, `ai.http-error`, `ai.network`, `ai.no-base-url`, `ai.no-file`, `ai.no-key`, `ai.no-model`, `ai.rate-limited`, `ai.timeout`) so the renderer's error copy keeps working.
+
+Pass the existing injected `fetch` through so the tests keep their doubles; do the same in `listModels()`.
+
+- [ ] **Step 4: Run the whole gateway suite**
+
+Run: `node --test electron/tools/ai-gateway.test.mjs`
+Expected: PASS, including the Task B1 pin and all 38 pre-existing tests.
+
+- [ ] **Step 5: Run the repo gates**
+
+Run: `pnpm test && pnpm typecheck`
+Expected: exit 0, 224 tests green.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add electron/tools/ai-gateway.cjs electron/tools/ai-gateway.test.mjs pnpm-lock.yaml
+git commit -m "refactor(ai): run the desktop gateway on the shared AI client"
+```
+
+### Task B3: Prove the desktop path against the real local provider
+
+**Files:** none modified (manual verification, recorded in the task notes).
+
+- [ ] **Step 1: Configure the studio desktop AI slots**
+
+In the app: Settings → AI keys, provider `freellmapi`, base URL `http://127.0.0.1:31415/v1`, model `auto`, paste the key. Save. If the app is not packaged, write the same values into `%APPDATA%/tm-studio/config.env` via the app's own settings screen (never hand-edit a plaintext key into a committed file).
+
+- [ ] **Step 2: Run one completion from the UI**
+
+Open TMCut → AI script, send a one-line prompt.
+Expected: an answer arrives; Settings → AI keys shows the masked key and a `Local`-style status, not a Hub relay badge.
+
+- [ ] **Step 3: Record the evidence**
+
+Append to the task notes: provider, model, latency, and the fact that the call went through `tools:ai-gateway`. Do not paste the key.
+
+---
+
+## Phase C — Hub hardening + hosted rollout (plan Phase 5 tail)
+
+### Task C1: Enable the relay mode guard in dev and prove both answers
+
+**Files:**
+- Modify: `tm-hub/.env` (gitignored)
+
+- [ ] **Step 1: Turn the guard on locally**
+
+Add to `tm-hub/.env`:
+```
+AI_RELAY_REQUIRE_HUB_MANAGED=true
+```
+
+- [ ] **Step 2: Restart the hub and prove a `local` row is refused**
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "X-App-Id: <tm-tools id>" -H "X-App-Secret: <secret>" \
+  -d '{"connectionId":"774c79e3-9293-4bbe-9d6c-fe9d84991315","model":"auto","messages":[{"role":"user","content":"ping"}]}' \
+  http://localhost:4000/api/v1/apps/<tm-tools id>/ai/relay/chat
+```
+Expected: HTTP 403 with `Connection mode 'local' is not relayed by this Hub`.
+
+- [ ] **Step 3: Prove a `hub` row still works**
+
+Same call with the `nvidia-main` connection id.
+Expected: HTTP 200 with content.
+
+- [ ] **Step 4: Turn the guard back off for local development**
+
+Set `AI_RELAY_REQUIRE_HUB_MANAGED=false` and restart. Phase 6 depends on the local hub relaying loopback while the app-side `local` path is still being verified.
+
+### Task C2: Deploy the Hub with the guard on (owner-gated)
+
+**Files:** Vercel env only.
+
+- [ ] **Step 1: Ask the owner before touching production**
+
+State plainly: this changes behaviour for every satellite. Do not proceed without a yes.
+
+- [ ] **Step 2: Deploy the committed hub**
+
+Push `tm-hub` `main`, let Vercel build, confirm the deployment is live.
+
+- [ ] **Step 3: Set the env var**
+
+```
+AI_RELAY_REQUIRE_HUB_MANAGED=true
+```
+Redeploy so the runtime config picks it up.
+
+- [ ] **Step 4: Verify from outside**
+
+Call the hosted relay with a `local` connection id → expect 403 (not 502). Call with a `hub` connection → expect 200.
+
+- [ ] **Step 5: Point the satellites back at the hosted hub only after both pass**
+
+`tm-tools/.env` and `tm-studio/.env`: `NUXT_PUBLIC_HUB_URL=https://tm-hub-app.vercel.app`. Restart both. Confirm tm-tools AI still answers (it now runs `local` mode itself) and that non-AI Hub features still work.
+
+---
+
+## Phase D — Shared UI (plan Phases 3 and 8)
+
+Deferred until A–C are stable. Start with one vertical slice, not the 84-component list.
+
+### Task D1: Contract audit for three components only
+
+**Files:**
+- Create: `tm-platform/docs/plans/ui-contract-audit.md`
+
+- [ ] **Step 1: Pick three candidates by real duplication, not by name**
+
+Confirmed present in all three repos: `app/components/admin/StatusBadge.vue` and `app/components/shared/ListFooter.vue`. Add `app/components/base/Page.vue` as the third.
+
+- [ ] **Step 2: For each, tabulate props / emits / slots / defaults / a11y / responsive behaviour from all three repos**
+
+Write the table into the audit file. Where two differ, mark `keep-in-app` and say why in one line.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add docs/plans/ui-contract-audit.md
+git commit -m "docs: audit three shared UI candidates"
+```
+
+### Task D2: Create `tm-ui` with exactly one component
+
+**Files:**
+- Create: `tm-platform/packages/ui/{package.json,tsup.config.ts,tsconfig.json,src/index.ts,src/StatusBadge.vue}`
+- Test: `tm-platform/packages/ui/tests/statusBadge.test.mjs`
+
+- [ ] **Step 1: Write the failing render test**
+
+The real component takes `label`, `color`, `icon`, `size`, `clickable`, `loading`, `disabled` and emits `click`; it renders a `UIcon` only when `icon` is passed.
+
+```js
+test('StatusBadge renders its label and the icon it is given', async () => {
+  const { renderToString } = await import('vue/server-renderer')
+  const { createSSRApp, h } = await import('vue')
+  const { StatusBadge } = await import('../dist/index.js')
+  const html = await renderToString(createSSRApp({
+    render: () => h(StatusBadge, { label: 'Connected', color: 'success', icon: 'i-lucide-circle-check' })
+  }))
+  assert.match(html, /Connected/)
+  assert.match(html, /i-lucide-circle-check/)
+})
+```
+
+- [ ] **Step 2: Run it; expect a module-not-found failure**
+
+Run: `pnpm --filter @tuanmjnh/tm-ui test`
+Expected: FAIL (package not created yet).
+
+- [ ] **Step 3: Scaffold the package by copying the shape of `packages/utils` (same tsup + prepare-dist pattern), then port the component with Vue as a peer dependency**
+
+- [ ] **Step 4: Build, test, pack**
+
+Run: `pnpm --filter @tuanmjnh/tm-ui build && pnpm --filter @tuanmjnh/tm-ui test && pnpm --filter @tuanmjnh/tm-ui exec npm pack --dry-run`
+Expected: all exit 0; `vue` is a peer, not bundled.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/ui pnpm-lock.yaml
+git commit -m "feat(ui): add tm-ui with a token-based StatusBadge"
+```
+
+### Task D3–D5: Migrate one app at a time
+
+Same shape each time, one repo per task: add the pinned dependency, replace the local component at **one** call site, run the repo gates, commit. Never delete the local copy until all three consumers have migrated and their suites are green.
+
+---
+
+## Phase E — Template + release hygiene (plan Phases 9 and 10)
+
+- **E1:** `examples/nuxt4-app` that consumes `tm-types` + `tm-ai-client` from the registry and boots with `pnpm dev`. Gate: page renders, one AI call against a stub server.
+- **E2:** Upgrade guide in `tm-platform/docs/upgrade.md` covering `file:` → version, and the mode migration table from `docs/phase-0-audit.md` §7.
+- **E3:** Security review checklist run against §6.5–6.7 of the spec: no secret in any package tarball (`npm pack` + grep), no localhost URL reachable from a hub-mode relay, grants enforced on cross-app rows (already covered by `tests/ai-connection-grants.test.ts`), secrets absent from logs.
+
+---
+
+## Sequencing summary
+
+| Order | Phase | Blocks | Owner gate |
+|---|---|---|---|
+| 1 | A1–A2 | B, C | npm scope + login |
+| 2 | A3 | A4 | **publish approval** |
+| 3 | A4 | B2 | — |
+| 4 | B1–B3 | C2 | — |
+| 5 | C1 | C2 | — |
+| 6 | C2 | — | **production deploy approval** |
+| 7 | D1–D5 | E1 | — |
+| 8 | E1–E3 | — | — |
+
+Two owner gates only: publishing packages, and deploying the Hub with the guard on. Everything else is local and reversible.
