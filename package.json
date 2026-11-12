@@ -1,38 +1,18 @@
 {
   "name": "tm-platform",
-  "version": "0.0.1",
-  "description": "TM shared platform library (scaffold)",
-  "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist"
-  ],
+  "version": "0.0.0",
+  "private": true,
+  "description": "TM shared platform monorepo (packages + examples)",
   "scripts": {
-    "build": "tsup && node scripts/prepare-dist.mjs",
-    "dev": "tsup --watch",
-    "prepublishOnly": "pnpm build",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test \"tests/**/*.test.mjs\"",
-    "pack:dry": "npm pack --dry-run"
-  },
-  "keywords": ["tm", "shared", "platform", "trial"],
-  "author": "tuanmjnh",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
-    "tsup": "^8.5.1",
-    "typescript": "^5.7.2"
+    "@changesets/cli": "^2.27.11"
   }
 }
