@@ -35,7 +35,7 @@ const pillTone: Record<string, string> = {
   <button
     v-if="clickable"
     type="button"
-    class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+    class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
     :class="pillTone[color]"
     :disabled="disabled || loading"
     @click.stop="emit('click')"

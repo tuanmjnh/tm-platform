@@ -54,6 +54,14 @@ const render = async props => {
   assert.doesNotMatch(badge, /red-500/)
 }
 
+// 2b. The clickable geometry matches the pill the apps already ship, so the
+//     only visible change at a migrated call site is the colour source.
+{
+  const html = await render({ label: 'Active', clickable: true, color: 'success' })
+  assert.match(html, /rounded-full/)
+  assert.match(html, /active:scale-95/)
+}
+
 // 3. Every documented tone renders, so an unknown colour cannot silently blank out
 {
   for (const color of ['success', 'neutral', 'warning', 'info', 'error', 'primary', 'secondary']) {

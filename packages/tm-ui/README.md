@@ -35,8 +35,9 @@ this package.
 | `disabled` | `boolean` | `false` |
 
 Emits `click` (no payload). Without `clickable` it renders a `UBadge
-variant="subtle"`; with it, a real `<button type="button">` whose tones come
-from semantic theme tokens, never a fixed shade.
+variant="subtle"`; with it, a real `<button type="button">` whose geometry
+matches the pills the apps already ship and whose tones come from semantic
+theme tokens, never a fixed shade.
 
 ## Migrating from a local copy
 
