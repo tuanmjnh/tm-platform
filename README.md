@@ -22,12 +22,12 @@ Planned, only when a real consumer exists: `tm-ui`, `tm-nuxt`.
 
 ```
 packages/
-  types/
-  validators/
-  utils/
-  ai-client/
+  tm-types/
+  tm-validators/
+  tm-utils/
+  tm-ai-client/
 examples/
-docs/            # phase-0 audit and migration notes
+docs/            # phase-0 audit, plans and migration notes
 ```
 
 ## Commands

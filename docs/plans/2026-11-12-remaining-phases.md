@@ -428,7 +428,7 @@ test('StatusBadge renders its label and the icon it is given', async () => {
 Run: `pnpm --filter @tuanmjnh/tm-ui test`
 Expected: FAIL (package not created yet).
 
-- [ ] **Step 3: Scaffold the package by copying the shape of `packages/utils` (same tsup + prepare-dist pattern), then port the component with Vue as a peer dependency**
+- [ ] **Step 3: Scaffold the package by copying the shape of `packages/tm-utils` (same tsup + prepare-dist pattern), then port the component with Vue as a peer dependency**
 
 - [ ] **Step 4: Build, test, pack**
 
