@@ -72,20 +72,34 @@ pnpm release:build tm-ai-client       # build one package
 Publishing one package at a time:
 
 ```bash
-pnpm release:publish tm-ai-client            # dry run for that package
-pnpm release:publish tm-ai-client --yes      # publish it for real
-pnpm release:publish:one                     # pick from a numbered list, then publish
+pnpm release:publish:ai-client          # @tuanmjnh/tm-ai-client
+pnpm release:publish:types              # @tuanmjnh/tm-types
+pnpm release:publish:utils              # @tuanmjnh/tm-utils
+pnpm release:publish:validators         # @tuanmjnh/tm-validators
+pnpm release:publish:cut-core           # tm-cut-core
+pnpm release:publish:hub-client         # tm-hub-client
+
+pnpm release:publish:ai-client --dry-run   # preview only, nothing is published
+pnpm release:publish:one                   # pick from a numbered list, then publish
+```
+
+Or pass the package name directly, and/or several at once:
+
+```bash
+pnpm release:publish tm-ai-client
+pnpm release:publish tm-cut-core tm-utils
 ```
 
 Or everything not already on the registry:
 
 ```bash
-pnpm release:publish                  # dry run for all
-pnpm release:publish --yes            # publish every package whose version is new
+pnpm release:publish                  # publish every package whose version is new
+pnpm release:publish --dry-run        # preview only
 ```
 
 Behaviour worth knowing:
 
+- publishing is the default: it needs `pnpm release:login` and a clean working tree
 - packages publish from `dist/`, never from the package root
 - a stale or missing `dist/` is rebuilt automatically before publishing
 - `--verify` runs `typecheck` + `test` for the selected packages first

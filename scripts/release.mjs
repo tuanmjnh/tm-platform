@@ -322,7 +322,7 @@ function publishPackages(packages, dryRun) {
   head('summary')
   if (dryRun) {
     console.log(`  checked ${tally.dry} · skipped ${tally.skipped} · failed ${tally.failed}`)
-    info('nothing was published — re-run with --yes to publish for real')
+    info('nothing was published — drop --dry-run to publish for real')
   } else {
     console.log(`  published ${tally.published} · skipped ${tally.skipped} · failed ${tally.failed}`)
   }
@@ -374,7 +374,7 @@ async function pickPackages() {
 async function commandPublishOne() {
   const packages = targets.length > 0 ? selectedPackages() : await pickPackages()
   if (!packages || packages.length === 0) return 1
-  return publishPackages(packages, !flags.has('--yes'))
+  return publishPackages(packages, flags.has('--dry-run'))
 }
 
 function commandHelp() {
@@ -386,22 +386,25 @@ ${paint(1, 'tm-platform release')}
   pnpm release:build                     build every package (sequential)
   pnpm release:build tm-ai-client        build one package
 
-  pnpm release:publish                   dry run: what would be published
-  pnpm release:publish --yes             publish every package not already on npm
-  pnpm release:publish tm-ai-client      dry run for one package
-  pnpm release:publish tm-ai-client --yes
-  pnpm release:publish tm-cut-core tm-utils --yes
+  pnpm release:publish                   publish every package not already on npm
+  pnpm release:publish --dry-run         preview only, nothing is published
+  pnpm release:publish tm-ai-client      publish one package
+  pnpm release:publish tm-cut-core tm-utils
 
+  pnpm release:publish:ai-client         one alias per package
+  pnpm release:publish:types               types · utils · validators
+  pnpm release:publish:cut-core            cut-core · hub-client
   pnpm release:publish:one               pick a package interactively, then publish
 
 ${paint(1, 'flags')}
-  --yes          publish for real (without it every publish is a dry run)
+  --dry-run      preview only (npm publish --dry-run), nothing is published
   --build        rebuild the selected package(s) first
   --verify       run typecheck + test of the selected package(s) first
   --force-tree   skip the clean-working-tree check
   --help         this text
 
 ${paint(1, 'notes')}
+  · publishing for real is the default: it needs npm login and a clean tree
   · packages publish from dist/, never from the package root
   · a stale or missing dist is rebuilt automatically before publishing
   · a version already on the registry is skipped, so re-running is safe
@@ -418,7 +421,7 @@ let exitCode = 0
 if (command === 'login') exitCode = commandLogin()
 else if (command === 'build') exitCode = commandBuild()
 else if (command === 'list') exitCode = commandList()
-else if (command === 'publish') exitCode = publishPackages(selectedPackages(), !flags.has('--yes'))
+else if (command === 'publish') exitCode = publishPackages(selectedPackages(), flags.has('--dry-run'))
 else if (command === 'publish-one') exitCode = await commandPublishOne()
 else {
   fail(`unknown command: ${command || positional[0]}`)

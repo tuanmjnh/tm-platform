@@ -16,7 +16,13 @@
     "release:list": "node scripts/release.mjs list",
     "release:build": "node scripts/release.mjs build",
     "release:publish": "node scripts/release.mjs publish",
-    "release:publish:one": "node scripts/release.mjs publish-one"
+    "release:publish:one": "node scripts/release.mjs publish-one",
+    "release:publish:ai-client": "node scripts/release.mjs publish tm-ai-client",
+    "release:publish:types": "node scripts/release.mjs publish tm-types",
+    "release:publish:utils": "node scripts/release.mjs publish tm-utils",
+    "release:publish:validators": "node scripts/release.mjs publish tm-validators",
+    "release:publish:cut-core": "node scripts/release.mjs publish tm-cut-core",
+    "release:publish:hub-client": "node scripts/release.mjs publish tm-hub-client"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.11"
