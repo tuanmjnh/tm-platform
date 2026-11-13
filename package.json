@@ -10,7 +10,13 @@
     "lint": "pnpm -r lint",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && changeset publish",
+    "release:help": "node scripts/release.mjs --help",
+    "release:login": "node scripts/release.mjs login",
+    "release:list": "node scripts/release.mjs list",
+    "release:build": "node scripts/release.mjs build",
+    "release:publish": "node scripts/release.mjs publish",
+    "release:publish:one": "node scripts/release.mjs publish-one"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.11"
