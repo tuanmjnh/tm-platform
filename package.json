@@ -22,7 +22,8 @@
     "release:publish:utils": "node scripts/release.mjs publish tm-utils",
     "release:publish:validators": "node scripts/release.mjs publish tm-validators",
     "release:publish:cut-core": "node scripts/release.mjs publish tm-cut-core",
-    "release:publish:hub-client": "node scripts/release.mjs publish tm-hub-client"
+    "release:publish:hub-client": "node scripts/release.mjs publish tm-hub-client",
+    "release:publish:ui": "node scripts/release.mjs publish tm-ui"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.11"

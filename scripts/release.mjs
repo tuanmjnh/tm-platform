@@ -393,7 +393,7 @@ ${paint(1, 'tm-platform release')}
 
   pnpm release:publish:ai-client         one alias per package
   pnpm release:publish:types               types · utils · validators
-  pnpm release:publish:cut-core            cut-core · hub-client
+  pnpm release:publish:cut-core            cut-core · hub-client · ui
   pnpm release:publish:one               pick a package interactively, then publish
 
 ${paint(1, 'flags')}
