@@ -456,6 +456,46 @@ Same shape each time, one repo per task: add the pinned dependency, replace the 
 
 ---
 
+## Execution log (2026-11-13)
+
+Status against the plan, with the evidence each claim rests on.
+
+| Task | Status | Evidence |
+|---|---|---|
+| A1–A3 publish 0.1.0 | done | 6 packages on npm, `release.mjs list` shows `up to date` |
+| A4 consumers on a version | done | tm-tools and tm-studio resolve `@tuanmjnh/tm-ai-client` from `.pnpm` |
+| B1 pin gateway contract | done | `electron/tools/ai-gateway.test.mjs` network pin |
+| B2 gateway on the client | done | 41/41 gateway tests, `pnpm test` 83/83, typecheck 0 |
+| B3 desktop against a real provider | **deferred** | needs the desktop app and a saved key; owner action |
+| C1 relay guard locally | done | 403 for `local`, 200 for `hub` (recorded earlier) |
+| C2 hosted deploy with the guard | **blocked** | owner approval required, nothing deployed |
+| D1 contract audit | done | `docs/plans/ui-contract-audit.md` |
+| D2 `tm-ui` slice | done | 7/7 render tests; tarball ships 6 files, `vue` as peer |
+| D3–D5 migrate apps | **blocked** | `@tuanmjnh/tm-ui` is not on npm yet (publish needs an OTP) |
+| E1 example app | done | page renders 200; `/api/chat` returns `pong (auto)` against a stub |
+| E2 upgrade guide | done | `docs/upgrade.md` |
+| E3 security review | done | `docs/security-review.md`; fixed a real loopback hole (below) |
+
+### Two defects found and fixed while executing
+
+1. **`tm-ai-client` reported a malformed reply as `ai.network`.** An adapter
+   parse failure thrown inside the request try-block was caught by the network
+   handler, so a 200 with no message content looked like a connectivity fault.
+   Now `ai.bad-shape`. Published as 0.2.1 together with `allowKeyless`.
+2. **The Hub relay trusted `inference_mode` alone.** A row mislabelled `hub`
+   pointing at `127.0.0.1` passed the mode check and failed upstream as a 502 —
+   the Phase 0 defect, still reachable. A hosted runtime now also checks the
+   resolved base URL, in both the chat path and the catalogue. tm-hub is
+   268/268 with 12 new policy assertions.
+
+### Plan deviation worth recording
+
+B2's plan said to map `ai.http-error` to `ai.api-error`. The existing suite pins
+`ai.http-error` for a 401 in `listModels`, and no renderer branches on that
+code, so the mapping was dropped; the gateway keeps its published vocabulary.
+
+---
+
 ## Sequencing summary
 
 | Order | Phase | Blocks | Owner gate |
