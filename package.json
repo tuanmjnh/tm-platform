@@ -1,7 +1,7 @@
 {
   "name": "tm-platform",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "description": "TM shared platform monorepo (packages + examples)",
   "scripts": {
     "build": "pnpm -r build",
