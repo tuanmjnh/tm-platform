@@ -471,10 +471,12 @@ Status against the plan, with the evidence each claim rests on.
 | C2 hosted deploy with the guard | **blocked** | owner approval required, nothing deployed |
 | D1 contract audit | done | `docs/plans/ui-contract-audit.md` |
 | D2 `tm-ui` slice | done | `StatusBadge` + `ListFooter` + `ModelSelect`; 8 files / 3.7 kB before ModelSelect |
-| D3–D5 migrate apps | done (local `link:`) | 14 badge + 27 footer + 2 picker call sites across 3 apps; 3 `StatusBadge`, 3 `RecordCount` copies deleted |
+| D3–D5 migrate apps | done | 14 badge + 27 footer + 2 picker call sites across 3 apps; 3 `StatusBadge`, 3 `RecordCount` copies deleted; now on the registry version, not `link:` |
 | E1 example app | done | page renders 200; `/api/chat` returns `pong (auto)` against a stub |
 | E2 upgrade guide | done | `docs/upgrade.md` |
 | E3 security review | done | `docs/security-review.md`; fixed a real loopback hole (below) |
+| F1 `tm-ui` 0.1.1 | **pending publish** | `text-foreground` → `text-highlighted` fixed in source, package tests 3/3; needs the owner's OTP |
+| F2 app `@source` fix | done | package root, not `dist/`; 6/4/7 package-only classes now in each built CSS, 0 missing |
 
 ### Plan deviation worth recording
 
@@ -513,9 +515,10 @@ Measured after the migration:
 | `active:scale-95` in source / built CSS | 0 / 1 | 0 / 1 | 0 / 1 |
 | All 7 semantic tones in built CSS | yes | yes | yes |
 
-The `0 / 1` row is the proof the component comes from the package: the class
-exists in no app source (the local copies were deleted) yet appears in every
-built stylesheet, which is only possible through the `@source` scan.
+Both of those CSS rows were **rejected later as proof** — see "The `@source`
+path was wrong" below. They held while the apps used `link:`, because the local
+package really does keep its output in `dist/`. They stopped holding the moment
+the package came from the registry.
 
 ### ListFooter and RecordCount extracted afterwards
 
@@ -536,9 +539,60 @@ Measured after the second pass (all three apps):
 | `ListFooter` mounted in a real page | 14 Record(s) | 50 Record(s) | 0 Record(s) |
 | computed `min-height` | 32px | 32px | 32px |
 
-The 32px is real evidence again: `min-h-8` appears **0 times** in tm-tools' app
-source (the wrapper has no markup of its own) but resolves to `32px` in the
-browser, which only the package's class string can produce.
+The 32px held while the package was linked, but it proved less than it looked
+like: `min-h-8` **also exists in `@nuxt/ui`** (`ui/drawer.ts`, `ui/chat-message.ts`),
+so a non-zero count in the stylesheet cannot tell you which package supplied it.
+That is why the replacement check below compares against classes that exist in
+`tm-ui` and nowhere else.
+
+### The `@source` path was wrong, and two of the gates above were not proof
+
+The package's `publish` script runs `npm publish ./dist`, so the tarball **is**
+the contents of `dist/` — the installed package is flat, with `ListFooter.js`
+at its root next to `package.json`. But every app's `main.css` said:
+
+```css
+@source "../../../node_modules/@tuanmjnh/tm-ui/dist";
+```
+
+Under `link:` that path existed, so the scan worked. Under a registry install it
+matches nothing, Tailwind emits no error for a missing `@source`, and every
+utility that only the package uses silently disappears from the stylesheet.
+
+Measured with `scripts/check-tmui-css.mjs`, which diffs the class strings in the
+installed package against app source and the `@nuxt/ui` theme, then asks whether
+each package-only class reached the build:
+
+| App | tm-ui-only classes missing before the fix | After |
+|---|---|---|
+| tm-hub | 6 — `active:scale-95`, `bg-muted/20`, `disabled:opacity-60`, `max-h-28`, `sm:text-xs`, `w-80` | 0 |
+| tm-tools | 4 — `active:scale-95`, `disabled:opacity-60`, `max-h-28`, `sm:text-xs` | 0 |
+| tm-studio | 7 — the above plus `select-all`, `text-foreground` | 0 |
+
+The fix is one character of path: point `@source` at the package root, not
+`dist`. Rebuilding each app moved every one of those classes into the
+stylesheet, which is the evidence the earlier "0 / 1" rows lacked.
+
+### A second defect the new check found: `text-foreground` is not a utility
+
+`select-all` and `text-foreground` were both listed as missing for studio. The
+first was the `@source` bug. The second was a real source bug: `ModelSelect.vue`
+styled the error popover's title `text-foreground`, and Nuxt UI v4 has no such
+utility — the app-wide colour roles are `text-highlighted`, `text-default`,
+`text-toned`, `text-muted`, `text-dimmed`, `text-inverted`, plus the app-config
+colours (`text-primary`, `text-secondary`, …). `text-foreground` appears nowhere
+in the `@nuxt/ui` package, so the title would have inherited its parent's colour
+instead of being emphasised. Renamed to `text-highlighted` and rebuilt; the
+checker is now clean on all three apps.
+
+This is the case for keeping `check-tmui-css.mjs`: no build, typecheck or test
+gate can see a class name that does not exist.
+
+**The same string is already in tm-hub and tm-tools**, and it was there before
+this work: `git show HEAD:tm-hub/app/pages/chat.vue` contains 9 occurrences, and
+no `.text-foreground` rule exists in either app's built CSS. Those are a
+pre-existing defect in the two apps, out of scope here and left untouched; the
+package no longer adds to the count.
 
 ### ModelSelect extracted, and the defect that exposed
 
@@ -586,27 +640,55 @@ matching `/^u[a-z]/`, on a signed-in page in each app:
 | tm-tools | `uselectmenu`, `ubutton`, `utooltip` | none | — (picker: 20 options, search placeholder "Select model") |
 | tm-studio | — | none | 0 Record(s), 32px |
 
+That check now lives in `scripts/probe-unresolved-tags.mjs` rather than in a
+throwaway script, and it was control-tested: with
+`app/plugins/tm-ui-globals.client.ts` renamed out of the way it reports
+`unresolved=[uselectmenu,utooltip,ubutton]` and exits 1, and restoring the file
+returns it to `unresolved=[none]`. A probe that cannot fail is not evidence.
+
 One tools spec pinned the old implementation by source regex
 (`ai_relay_ui.spec.ts`). The behaviour is unchanged, so the reads were repointed
 at the wrapper *and* the package source; no assertion was dropped — the count went
 68/68 with the same checks.
 
-### Publish runbook for `@tuanmjnh/tm-ui`
+### Published, and the apps switched to the registry
 
-`node scripts/release.mjs list` reports `tm-ui 0.1.0 ready unpublished`.
-When the OTP is available:
+`@tuanmjnh/tm-ui@0.1.0` is on npm; the published tarball's compiled
+`ModelSelect.js` is byte-identical to the local `dist` (md5
+`4cef983d28df0472b9c9dc729f9d7ebe`, 14 files). All three apps now pin `0.1.0`
+and resolve it from `node_modules/.pnpm/@tuanmjnh+tm-ui@0.1.0_@nuxt_…`, not
+from `../tm-platform`. `node scripts/release.mjs list` reports all seven
+packages `up to date`. An earlier run of that command said `unpublished`; it was
+registry propagation lag right after the publish, not a script defect.
 
-```bash
-pnpm release:publish:ui     # publishes ./dist after rebuilding it
-pnpm tm-ui:registry         # switches all three apps from link: to ^0.1.0
-```
+Gates against the registry install. The CSS row that stood here
+(`min-h-8` 0 / 1) was **not** proof — see "The `@source` path was wrong" above —
+so it is replaced by the package-only class diff, and the builds below are the
+ones taken *after* both fixes:
 
-`pnpm tm-ui:link` reverses it. `minimumReleaseAgeExclude` already lists
-`@tuanmjnh/tm-ui@0.1.0` in all three apps, so the fresh publish will not be
-refused by the supply-chain policy. The Vite `fs.allow` and Tailwind `@source`
-entries are harmless once the package resolves from `node_modules`.
+| Gate | tm-hub | tm-tools | tm-studio |
+|---|---|---|---|
+| `pnpm typecheck` | 0 | 0 | 0 |
+| `pnpm test` | 268 pass | 68 pass | 144 pass, 1 pre-existing fail |
+| `pnpm build` | exit 0, 1m17s | exit 0, 2m34s | exit 0, 53.3s |
+| tm-ui-only classes missing from built CSS | 0 of 6 | 0 of 4 | 0 of 7 |
+| computed footer `min-height` | 32px (14 Record(s)) | 32px (50+ Record(s)) | 32px (3 Record(s)) |
+| unresolved `<u*>` tags in the DOM | none on `/admin/apps`, `/admin/users`, `/admin/roles` | none on `/chat` | none on `/system/docs`, `/resources/notifications`, `/system/settings/sessions` |
 
-### Two defects found and fixed while executing
+The studio failure is `tmcut_doc_table_shape.spec.ts`: `docs/audit/zero-ffmpeg-audit.md:9114`
+has 3 cells where header line 9107 has 2. It is unrelated to the package work and
+was proven pre-existing by stashing the changes, re-running on clean `HEAD` (same
+failure), and restoring. Not fixed here, and not softened — the spec still checks
+what it checked before.
+
+The published 0.1.0 tarball still contains the `text-foreground` bug. The
+`@source` fix is app-side, so that one is already covered, but the bad class is
+compiled into the package. A 0.1.1 is required before anyone installs this
+fresh: until it is out, an app pinned to `0.1.0` renders the error popover title
+in the inherited colour. Locally the package is already fixed and its own tests
+pass (3/3).
+
+### Four defects found and fixed while executing
 
 1. **`tm-ai-client` reported a malformed reply as `ai.network`.** An adapter
    parse failure thrown inside the request try-block was caught by the network
@@ -617,6 +699,11 @@ entries are harmless once the package resolves from `node_modules`.
    the Phase 0 defect, still reachable. A hosted runtime now also checks the
    resolved base URL, in both the chat path and the catalogue. tm-hub is
    268/268 with 12 new policy assertions.
+3. **The `@source` path pointed at a directory the registry install does not
+   have.** Detailed above under its own heading; fixed in all three apps, and
+   `check-tmui-css.mjs` now guards it.
+4. **`text-foreground` is not a Nuxt UI utility.** Detailed above; fixed in the
+   package source, awaiting a 0.1.1 publish.
 
 ### Plan deviation worth recording
 

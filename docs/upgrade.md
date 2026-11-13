@@ -29,13 +29,36 @@ vite: {
 }
 ```
 
-2. **Tailwind must scan the package's dist.** Tailwind does not scan
-   `node_modules`, and the component's class strings only exist there:
+2. **Tailwind must scan the package.** Tailwind does not scan `node_modules`,
+   and the component's class strings only exist there. Point `@source` at the
+   **package root**, not at `dist/`:
 
 ```css
 @import "@nuxt/ui";
-@source "../../../node_modules/@tuanmjnh/tm-ui/dist";
+@source "../../../node_modules/@tuanmjnh/tm-ui";
 ```
+
+   This path is easy to get wrong, and the failure is silent. The package's
+   `publish` script runs `npm publish ./dist`, so the tarball **is** the contents
+   of `dist/` and the installed tree is flat — `ListFooter.js` sits at the root
+   next to `package.json`, and `@source ".../tm-ui/dist"` matches nothing.
+   Under `link:` the same path does exist, so the mistake only surfaces after
+   switching to the registry: the build still succeeds, and every utility that
+   only the package uses (`active:scale-95`, `max-h-28`, `w-80`, …) is missing
+   from the stylesheet. Tailwind emits no warning for a `@source` that matches
+   no files.
+
+   Verify with the package-only class diff rather than a hand-picked class:
+
+```bash
+node ../tm-platform/scripts/check-tmui-css.mjs   # run from the app dir
+```
+
+   It reads the class strings out of the installed package, drops any that also
+   appear in the app's own source or in `@nuxt/ui`'s theme, and then checks each
+   remaining class against the built stylesheet. A hand-picked class can lie:
+   `min-h-8` looks package-specific but `@nuxt/ui` uses it in `drawer.ts` and
+   `chat-message.ts`, so its presence proves nothing.
 
 3. **The app must register every component the package resolves at runtime.**
    `dist` is precompiled by `scripts/build-sfc.mjs`, so a component's render
@@ -71,6 +94,30 @@ export default defineNuxtPlugin((nuxtApp) => {
    unknown element — an empty pill, no console error, `nuxt build` and
    `vue-tsc` green — while the `clickable` variant (a plain `<button>`) still
    looks right, so a visual check can pass with half the badges invisible.
+
+   Because no static gate can see this, check the rendered DOM instead. The
+   probe logs a browser in with the seeded root account, drops the tokens in as
+   cookies, and fails if any `<u[a-z]…>` element other than the native `u`/`ul`
+   is in the DOM. It reads the credentials in-process and never prints them.
+
+```bash
+# from the app directory, with its dev server running; defaults to tm-tools
+# on :4002 and the /chat route
+node ../tm-platform/scripts/probe-unresolved-tags.mjs
+
+# another app: override the URL, its hub app id and the routes to visit
+PROBE_APP_URL=http://localhost:4000 \
+PROBE_APP_ID=tm-hub_8h48bq \
+PROBE_ROUTES=/admin/apps,/admin/roles \
+node ../tm-platform/scripts/probe-unresolved-tags.mjs
+```
+
+   On Git Bash prefix `MSYS_NO_PATHCONV=1`, otherwise a leading `/admin/apps`
+   is rewritten into a Windows path before Node sees it.
+
+   Verify the probe itself by renaming `app/plugins/tm-ui-globals.client.ts` out
+   of the way: it must report `unresolved=[uselectmenu,utooltip,ubutton]` and
+   exit 1. A probe that cannot fail proves nothing.
 
 4. **One Vue instance, or none of the above helps.** `link:` also changes where
    the package resolves `vue` from: Vite reads it out of `tm-platform`'s tree
@@ -111,9 +158,10 @@ pnpm tm-ui:link       # back to the local symlink
 ```
 
 `minimumReleaseAgeExclude` in each app's `pnpm-workspace.yaml` already lists
-`@tuanmjnh/tm-ui@0.1.0`, so a fresh publish is not refused. The `fs.allow` and
-`@source` entries above stay harmless under a registry install; delete them only
-if you also want the extra config noise gone.
+`@tuanmjnh/tm-ui@0.1.0`, so a fresh publish is not refused. Keep the `@source`
+entry: it is what pulls the package's classes into the stylesheet, and it must
+point at the package root rather than `dist/` (§0.2). The `fs.allow` entry only
+matters for `link:` and is harmless afterwards.
 
 ## 1. `file:` → registry version
 
@@ -161,7 +209,7 @@ minimumReleaseAgeExclude:
 | `@tuanmjnh/tm-utils` | Pure functions, no browser/Node/Electron imports |
 | `tm-hub-client` | Control-plane SDK; unaffected by the AI work |
 | `tm-cut-core` | Editing engine; the studio reads it by source alias, so only change this if that alias moves |
-| `@tuanmjnh/tm-ui` | `vue` is a peer; `@nuxt/ui` stays the app's own dependency. Exports `StatusBadge` and `ListFooter`; `ListFooter` takes its three labels as props, so each app keeps a thin wrapper that supplies `t(...)`. While it is linked it needs all four items from §0 — `fs.allow`, `@source`, the `UBadge`/`UIcon` registration, and one Vue instance |
+| `@tuanmjnh/tm-ui` | `vue` is a peer; `@nuxt/ui` stays the app's own dependency. Exports `StatusBadge`, `ListFooter` and `ModelSelect`; `ListFooter` takes its three labels as props, so each app keeps a thin wrapper that supplies `t(...)`. Needs all four items from §0 — `fs.allow`, `@source`, the `UBadge`/`UIcon`/`UButton`/`USelectMenu`/`UTooltip`/`UPopover` registration, and one Vue instance. `@source` and the registration apply to a registry install too; only `fs.allow` is `link:`-specific |
 
 ## 2. AI connection modes
 

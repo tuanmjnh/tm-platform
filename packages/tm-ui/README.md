@@ -33,8 +33,11 @@ vite: { server: { fs: { allow: [fileURLToPath(new URL('../tm-platform/packages/t
 ```
 
 ```css
-/* app/assets/css/main.css — Tailwind does not scan node_modules */
-@source "../../../node_modules/@tuanmjnh/tm-ui/dist";
+/* app/assets/css/main.css — Tailwind does not scan node_modules.
+   The path is the package root, not `dist/`: publishing runs
+   `npm publish ./dist`, so the installed tree is flat and a `dist`
+   suffix matches nothing — silently dropping every package-only class. */
+@source "../../../node_modules/@tuanmjnh/tm-ui";
 ```
 
 ```ts

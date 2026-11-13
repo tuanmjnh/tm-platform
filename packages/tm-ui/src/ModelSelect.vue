@@ -257,7 +257,7 @@ onBeforeUnmount(() => {
             <div class="flex items-start gap-2">
               <UIcon name="i-lucide-alert-circle" class="size-4 shrink-0 text-error mt-0.5" />
               <div class="min-w-0 flex-1">
-                <p class="font-semibold text-foreground text-xs leading-snug">
+                <p class="font-semibold text-highlighted text-xs leading-snug">
                   {{ lastErrorTitle }}
                 </p>
                 <p v-if="lastErrorDesc" class="mt-1 text-muted text-xs leading-relaxed">
