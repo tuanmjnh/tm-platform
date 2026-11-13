@@ -8,7 +8,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const appDir = process.argv[2] || process.cwd()
-const P = fs.realpathSync(path.join(appDir, 'node_modules/@tuanmjnh/tm-ui'))
+const pkgRoot = fs.realpathSync(path.join(appDir, 'node_modules/@tuanmjnh/tm-ui'))
+// On a link: install the package root holds source and the compiled modules sit
+// in dist/; the published tarball is the contents of dist, so the root is flat.
+const P = fs.existsSync(path.join(pkgRoot, 'dist', 'index.js')) ? path.join(pkgRoot, 'dist') : pkgRoot
 
 const classes = new Set()
 for (const f of fs.readdirSync(P).filter(f => f.endsWith('.js'))) {
@@ -42,13 +45,26 @@ const appTokens = tokens(appSrc)
 const uiTokens = tokens(nuxtUi)
 
 const only = [...classes].filter(c => !appTokens.has(c) && !uiTokens.has(c)).sort()
-const cssEscaped = c => c.replace(/:/g, '\\:').replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\./g, '\\.').replace(/\//g, '\\/')
 
+// Tailwind escapes every character CSS treats as structural, and the minifier
+// then rewrites numeric values (.18 -> .18, 0.18 -> .18). Comparing the raw
+// class text against the built CSS therefore reports false misses for exactly
+// the arbitrary-value utilities that matter most. Normalise both sides instead.
+const CSS_ESCAPABLE = /[:[\]()./,%#!&*+~'"<>=@^`|{}?;]/g
+const escapeClass = c => c.replace(CSS_ESCAPABLE, ch => '\\' + ch)
+const normaliseNumber = s => s.replace(/(?<![\d.])0\.(\d)/g, '.$1')
+
+// A class only needs a rule of its own when something defines it. A bare hook
+// (`tree-menu`, `he-tree-root`) carries no styles anywhere, including in the
+// pre-extraction app, so its absence from the stylesheet is not a regression.
+const HOOK_ONLY = new Set(['tree-menu', 'he-tree-root'])
+
+const cssNormalised = normaliseNumber(css)
 const present = []
 const missing = []
 for (const c of only) {
-  const escaped = '.' + cssEscaped(c)
-  if (css.includes(escaped)) present.push(c)
+  if (HOOK_ONLY.has(c)) continue
+  if (cssNormalised.includes('.' + normaliseNumber(escapeClass(c)))) present.push(c)
   else missing.push(c)
 }
 
@@ -56,3 +72,5 @@ console.log(`published package: ${P}`)
 console.log(`tm-ui-only classes: ${only.length}`)
 console.log(`PRESENT in built CSS (${present.length}): ${present.join(', ') || '-'}`)
 console.log(`MISSING from built CSS (${missing.length}): ${missing.join(', ') || '-'}`)
+if (missing.length) process.exitCode = 1
+

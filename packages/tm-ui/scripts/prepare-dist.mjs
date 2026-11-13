@@ -21,6 +21,9 @@ const distPkg = {
       types: './index.d.ts',
       import: './index.js'
     },
+    // The same specifier works on a link: install (where the package root holds
+    // source) and on the published tarball (which is the contents of dist).
+    './style.css': './style.css',
     './package.json': './package.json'
   },
   files: ['*'],

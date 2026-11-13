@@ -78,5 +78,9 @@ export interface ModelSelectEmits {
   'check:error': (payload: ModelSelectCheckError) => void
 }
 
-declare const ModelSelect: DefineComponent<ModelSelectProps, {}, {}, {}, {}, {}, {}, ModelSelectEmits>
+declare const ModelSelect: DefineComponent<ModelSelectProps, {}, {}, {}, {}, {}, {}, {
+  'update:modelValue': (value: string) => void
+  'check:success': (payload: ModelSelectCheckSuccess) => void
+  'check:error': (payload: ModelSelectCheckError) => void
+}>
 export default ModelSelect
