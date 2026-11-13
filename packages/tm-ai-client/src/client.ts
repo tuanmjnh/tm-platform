@@ -1,5 +1,6 @@
 import { AIClientError, isLocalEndpoint } from './errors'
 import { openAICompatibleAdapter } from './adapters/openai'
+import { anthropicAdapter } from './adapters/anthropic'
 import type {
   AIClientOptions,
   ChatRequest,
@@ -12,8 +13,15 @@ import type {
 
 const DEFAULT_TIMEOUT_MS = 60_000
 
+/**
+ * The endpoint names the wire protocol, not the vendor: an aggregator can
+ * serve an Anthropic-shaped API under its own provider id, and a provider
+ * preset may expose the OpenAI-compatible surface. Only `anthropic` is
+ * distinct; everything else speaks the OpenAI contract.
+ */
 function adapterFor(endpoint: ClientEndpoint): ProviderAdapter {
-  return openAICompatibleAdapter
+  const family = String(endpoint.provider || '').trim().toLowerCase()
+  return family === 'anthropic' ? anthropicAdapter : openAICompatibleAdapter
 }
 
 function assertEndpoint(endpoint: ClientEndpoint, options: AIClientOptions): void {
