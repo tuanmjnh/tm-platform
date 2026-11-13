@@ -5,3 +5,7 @@ packages:
 allowBuilds:
   esbuild: true
   vue-demi: true
+
+minimumReleaseAgeExclude:
+  - '@tuanmjnh/tm-ai-client@0.2.1'
+  - '@tuanmjnh/tm-types@0.1.0'
