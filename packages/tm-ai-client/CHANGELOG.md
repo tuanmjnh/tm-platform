@@ -1,5 +1,15 @@
 # @tuanmjnh/tm-ai-client
 
+## 0.2.1
+
+### Patch Changes
+
+- Report a 200 response with no usable message content as `ai.bad-shape`
+  instead of `ai.network` — a malformed provider reply is not a network fault.
+
+  Add `allowKeyless` so a deployment-fronted gateway can run on a public base
+  URL when the deployment holds the credential.
+
 ## 0.2.0
 
 ### Minor Changes

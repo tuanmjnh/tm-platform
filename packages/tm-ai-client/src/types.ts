@@ -66,6 +66,11 @@ export interface AIClientOptions {
   fetchImpl?: typeof fetch
   /** Default per-request timeout. */
   timeoutMs?: number
+  /**
+   * Allow a gateway provider (freellmapi/custom/ollama) to run on a public base
+   * URL without a client-side key, when the deployment holds the credential.
+   */
+  allowKeyless?: boolean
   /** Reject a `local` mode endpoint resolved by a remote runtime. */
   assertModeAllowed?: (mode: AIConnectionMode) => void
 }

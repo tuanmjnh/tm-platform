@@ -33,29 +33,43 @@ function assertEndpoint(endpoint: ClientEndpoint, options: AIClientOptions): voi
   if (endpoint.mode === 'local') options.assertModeAllowed?.('local')
 }
 
-function assertCredentials(endpoint: ClientEndpoint): void {
+function assertCredentials(endpoint: ClientEndpoint, allowKeyless: boolean): void {
   if (endpoint.apiKey) return
   if (isLocalEndpoint(endpoint.baseUrl)) return
+  // The caller opts in when its deployment fronts the endpoint and holds the
+  // credential. Which providers qualify is app policy, so it stays out of here.
+  if (allowKeyless) return
   throw new AIClientError('ai.no-key', `Missing API key for provider "${endpoint.provider}"`)
+}
+
+/** An adapter parse failure is a malformed provider reply, never a network fault. */
+function parseChatOrThrow(adapter: ProviderAdapter, json: unknown) {
+  try {
+    return adapter.parseChatResponse(json)
+  } catch (err) {
+    throw new AIClientError('ai.bad-shape', String((err as Error)?.message || 'Malformed chat response'))
+  }
 }
 
 export class AIClient {
   private readonly endpoint: ClientEndpoint
   private readonly fetchImpl: typeof fetch
   private readonly timeoutMs: number
+  private readonly allowKeyless: boolean
   private readonly assertModeAllowed?: (mode: 'hub' | 'app' | 'local') => void
 
   constructor(options: AIClientOptions) {
     this.endpoint = options.endpoint
     this.fetchImpl = options.fetchImpl || globalThis.fetch
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    this.allowKeyless = options.allowKeyless === true
     this.assertModeAllowed = options.assertModeAllowed
   }
 
   async chat(request: ChatRequest): Promise<ChatResult> {
     const adapter = adapterFor(this.endpoint)
     assertEndpoint(this.endpoint, { endpoint: this.endpoint, assertModeAllowed: this.assertModeAllowed })
-    assertCredentials(this.endpoint)
+    assertCredentials(this.endpoint, this.allowKeyless)
 
     if (!request.messages || request.messages.length === 0) {
       throw new AIClientError('ai.bad-shape', 'messages must be a non-empty array')
@@ -92,7 +106,7 @@ export class AIClient {
       } catch {
         throw new AIClientError('ai.bad-shape', 'Response is not valid JSON')
       }
-      const parsed = adapter.parseChatResponse(json)
+      const parsed = parseChatOrThrow(adapter, json)
       return {
         content: parsed.content,
         model: request.model,
@@ -114,7 +128,7 @@ export class AIClient {
   async *stream(request: ChatRequest): AsyncGenerator<StreamChunk> {
     const adapter = adapterFor(this.endpoint)
     assertEndpoint(this.endpoint, { endpoint: this.endpoint, assertModeAllowed: this.assertModeAllowed })
-    assertCredentials(this.endpoint)
+    assertCredentials(this.endpoint, this.allowKeyless)
     if (!request.messages || request.messages.length === 0) {
       throw new AIClientError('ai.bad-shape', 'messages must be a non-empty array')
     }
@@ -179,7 +193,7 @@ export class AIClient {
   async listModels(): Promise<ModelListResult> {
     const adapter = adapterFor(this.endpoint)
     assertEndpoint(this.endpoint, { endpoint: this.endpoint, assertModeAllowed: this.assertModeAllowed })
-    assertCredentials(this.endpoint)
+    assertCredentials(this.endpoint, this.allowKeyless)
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)

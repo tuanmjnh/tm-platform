@@ -228,4 +228,39 @@ assert.equal(isLocalEndpoint('https://api.openai.com/v1'), false)
   assert.equal(seen.headers.authorization, 'Bearer sk-x')
 }
 
+// 13. A 200 with no message content is a shape error, not a network failure
+{
+  const client = new AIClient({
+    endpoint: baseEndpoint,
+    fetchImpl: async () => jsonResponse({ choices: [{ message: { content: '' } }] })
+  })
+  await assert.rejects(
+    () => client.chat({ model: 'auto', messages: [{ role: 'user', content: 'hi' }] }),
+    (err) => err instanceof AIClientError && err.code === 'ai.bad-shape'
+  )
+}
+
+// 14. `allowKeyless` lets a deployment-fronted gateway omit the key
+{
+  const client = new AIClient({
+    endpoint: { provider: 'freellmapi', baseUrl: 'https://gw.example.test/v1' },
+    allowKeyless: true,
+    fetchImpl: async () => jsonResponse({ choices: [{ message: { content: 'ok' } }] })
+  })
+  const result = await client.chat({ model: 'auto', messages: [{ role: 'user', content: 'hi' }] })
+  assert.equal(result.content, 'ok')
+}
+
+// 15. `allowKeyless` is opt-in, so a keyless OpenAI endpoint still fails
+{
+  const client = new AIClient({
+    endpoint: { provider: 'openai', baseUrl: 'https://api.openai.com/v1' },
+    fetchImpl: async () => { throw new Error('should not be called') }
+  })
+  await assert.rejects(
+    () => client.chat({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'hi' }] }),
+    (err) => err instanceof AIClientError && err.code === 'ai.no-key'
+  )
+}
+
 console.log('tm-ai-client tests passed')
