@@ -118,4 +118,4 @@ goal. Revisit only if the chrome itself is unified first.
 `@tuanmjnh/tm-ui` exports exactly one component: `StatusBadge`, using the
 semantic tone map and `rounded-md`. `vue` is a peer dependency; `@nuxt/ui`
 (`UBadge`, `UIcon`) and Tailwind token classes are resolved by the consuming
-Nuxt app, the same way `@nuxt/ui` itself ships `.vue` sources.
+Nuxt app. The SFC is compiled at build time, so consumers do not transpile it.
