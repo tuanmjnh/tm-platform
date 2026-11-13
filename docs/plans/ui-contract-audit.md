@@ -9,7 +9,7 @@ read from the file itself, not inferred from its name. Call-site counts come fro
 | Component | hub | tools | studio | Verdict |
 |---|---|---|---|---|
 | `admin/StatusBadge.vue` | 41 lines, 9 call sites | 53 lines, 4 call sites | 55 lines, 1 call site | **extract** — identical contract, studio differs only in tone source |
-| `shared/ListFooter.vue` | 43 lines, 14 call sites | 45 lines, 10 call sites | 45 lines, 3 call sites | **extract later** — identical markup, but needs `useI18n` + `SharedRecordCount` (two extra modules) |
+| `shared/ListFooter.vue` | 43 lines, 14 call sites | 45 lines, 10 call sites | 45 lines, 3 call sites | **extracted** — identical markup; labels became props, `SharedRecordCount` folded in |
 | `base/Page.vue` | 171 lines, 27 call sites | 71 lines, 39 call sites | 90 lines, 16 call sites | **keep-in-app** — hub is a superset wired to six local modules |
 
 ## 1. `admin/StatusBadge.vue`
@@ -50,10 +50,10 @@ other badge."*
 
 **Decision:** extract the studio tone map as canonical, because it is the one that
 survives theme changes — `bg-emerald-500/10` in hub/tools is a fixed shade that
-does not follow the accent palette. Migrate studio first (its rendering is
-unchanged by the extraction). hub/tools stay on their local copy until someone
-can eyeball the pill radius and press feedback on screen; that is a visual
-decision, not a mechanical one.
+does not follow the accent palette. **Done:** studio, hub and tools all now use
+the package; the shared pill keeps `rounded-full` and `active:scale-95`, so hub
+and tools render exactly as they did and studio's pill becomes rounder (it was
+`rounded-md`).
 
 ### Accessibility and responsive
 
@@ -81,15 +81,16 @@ All three files have the same tree: a row, `#left` slot, `#right` slot, then
 icon with `common.no_more_data`. The only difference is line wrapping in the
 `v-else-if` block.
 
-**Decision: extract later.** The markup is a perfect candidate, but it is not
-self-contained: it calls `useI18n()` and renders the auto-imported
-`SharedRecordCount`. Shipping it as a package means either pulling a second
-component in (breaking "one component per slice") or passing three label strings
-through props (changing every call site). Both are larger than the StatusBadge
-slice, so they follow it.
+**Decision: extracted.** The markup is identical in all three, so the package
+takes the label strings as props (`recordsLabel`, `loadingLabel`,
+`noMoreLabel`) and folds `SharedRecordCount` in. That avoids both an i18n
+dependency and any call-site change: each app keeps a thin
+`shared/ListFooter.vue` wrapper that supplies its translations and forwards the
+two slots.
 
 The three i18n keys it reads (`common.records`, `common.loading_text`,
-`common.no_more_data`) exist in all three locales already.
+`common.no_more_data`) exist in all three locales already, so the wrapper is a
+pure pass-through today.
 
 ## 3. `base/Page.vue`
 
@@ -115,7 +116,31 @@ goal. Revisit only if the chrome itself is unified first.
 
 ## What ships in this slice
 
-`@tuanmjnh/tm-ui` exports exactly one component: `StatusBadge`, using the
-semantic tone map and `rounded-md`. `vue` is a peer dependency; `@nuxt/ui`
-(`UBadge`, `UIcon`) and Tailwind token classes are resolved by the consuming
-Nuxt app. The SFC is compiled at build time, so consumers do not transpile it.
+`@tuanmjnh/tm-ui` exports two components:
+
+- **`StatusBadge`** — semantic tone map, `rounded-full` for the clickable pill so
+  the geometry matches what every app already shipped.
+- **`ListFooter`** — the shared footer row. Labels arrive as props
+  (`recordsLabel`, `loadingLabel`, `noMoreLabel`) instead of `useI18n()` calls,
+  so the package carries no i18n dependency. Each app keeps a thin
+  `shared/ListFooter.vue` wrapper that passes translations and forwards the
+  `left`/`right` slots, which leaves all 27 call sites untouched.
+  `SharedRecordCount` is folded in and was deleted from all three apps — it had
+  no direct users.
+
+`vue` is a peer dependency; `@nuxt/ui` (`UBadge`, `UIcon`) and Tailwind token
+classes are resolved by the consuming Nuxt app. Every SFC is compiled at build
+time, so consumers do not transpile them.
+
+## Outcome (2026-11-13)
+
+Both components are live in all three apps via `link:`. Measured per app:
+typecheck 0, tests green (268 / 68 / 144+83), builds pass, and a signed-in
+browser check confirmed `StatusBadge` and `ListFooter` mount with a real record
+count. `SharedRecordCount.vue` and the three `admin/StatusBadge.vue` copies are
+gone.
+
+Two host requirements were discovered by measurement and are documented in
+`docs/upgrade.md` §0: Vite dev refuses a symlink outside the project root, and
+Tailwind does not scan `node_modules` so the package needs an explicit
+`@source`. Both are invisible to `nuxt build`.

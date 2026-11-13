@@ -38,7 +38,8 @@ const APPS = {
 const ROOT = process.env.TM_APPS_ROOT || 'D:/Applications'
 
 const IMPORT_LINE = "import { StatusBadge as AdminStatusBadge } from '@tuanmjnh/tm-ui'"
-const VERSION = process.env.TM_UI_VERSION || '^0.1.0'
+// `TM_UI_SPEC=file:../tm-platform/packages/tm-ui` while the package is local.
+const SPEC = process.env.TM_UI_SPEC || `@tuanmjnh/tm-ui@${process.env.TM_UI_VERSION || '^0.1.0'}`
 
 function run(cmd, args, cwd) {
   const result = spawnSync(cmd, args, {
@@ -84,8 +85,9 @@ for (const [app, files] of Object.entries(APPS)) {
   for (const file of files) {
     if (addImport(repoDir, file)) changed += 1
   }
-  console.log(`  installing @tuanmjnh/tm-ui@${VERSION}`)
-  if (!run('pnpm', ['add', '-w', `@tuanmjnh/tm-ui@${VERSION}`], repoDir)) {
+  console.log(`  installing ${SPEC}`)
+  const spec = SPEC.startsWith('@tuanmjnh/tm-ui@') ? SPEC : `@tuanmjnh/tm-ui@${SPEC}`
+  if (!run('pnpm', ['add', '-w', spec], repoDir)) {
     console.error(`  FAILED to install in ${app}`)
     process.exitCode = 1
   }

@@ -23,7 +23,10 @@
     "release:publish:validators": "node scripts/release.mjs publish tm-validators",
     "release:publish:cut-core": "node scripts/release.mjs publish tm-cut-core",
     "release:publish:hub-client": "node scripts/release.mjs publish tm-hub-client",
-    "release:publish:ui": "node scripts/release.mjs publish tm-ui"
+    "release:publish:ui": "node scripts/release.mjs publish tm-ui",
+    "adopt:ui": "node scripts/adopt-tm-ui.mjs",
+    "tm-ui:registry": "node scripts/switch-tm-ui.mjs registry",
+    "tm-ui:link": "node scripts/switch-tm-ui.mjs link"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.11"

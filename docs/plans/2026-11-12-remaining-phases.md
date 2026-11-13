@@ -470,11 +470,141 @@ Status against the plan, with the evidence each claim rests on.
 | C1 relay guard locally | done | 403 for `local`, 200 for `hub` (recorded earlier) |
 | C2 hosted deploy with the guard | **blocked** | owner approval required, nothing deployed |
 | D1 contract audit | done | `docs/plans/ui-contract-audit.md` |
-| D2 `tm-ui` slice | done | 7/7 render tests; tarball ships 6 files, `vue` as peer |
-| D3–D5 migrate apps | **blocked** | `@tuanmjnh/tm-ui` is not on npm yet (publish needs an OTP) |
+| D2 `tm-ui` slice | done | `StatusBadge` + `ListFooter` + `ModelSelect`; 8 files / 3.7 kB before ModelSelect |
+| D3–D5 migrate apps | done (local `link:`) | 14 badge + 27 footer + 2 picker call sites across 3 apps; 3 `StatusBadge`, 3 `RecordCount` copies deleted |
 | E1 example app | done | page renders 200; `/api/chat` returns `pong (auto)` against a stub |
 | E2 upgrade guide | done | `docs/upgrade.md` |
 | E3 security review | done | `docs/security-review.md`; fixed a real loopback hole (below) |
+
+### Plan deviation worth recording
+
+B2's plan said to map `ai.http-error` to `ai.api-error`. The existing suite pins
+`ai.http-error` for a 401 in `listModels`, and no renderer branches on that
+code, so the mapping was dropped; the gateway keeps its published vocabulary.
+
+### D3–D5 executed against a local package
+
+`@tuanmjnh/tm-ui` stays unpublished for now (npm returns `EOTP` for a new
+package name), so all three apps consume it with `link:../tm-platform/packages/tm-ui`
+and the migration was run and verified against that.
+
+Two configuration requirements were found by measurement, not assumption:
+
+1. **Vite dev blocked the symlink.** `link:` points outside the project root, so
+   the browser got `403 ... is outside of Vite serving allow list` and the badge
+   never loaded — while `nuxt build` passed, which made it look fine. Each app
+   now adds the package to `vite.server.fs.allow`.
+2. **Tailwind did not scan the package.** Class strings live only in the
+   package's compiled dist, and `bg-info/10` had no other occurrence in tm-hub or
+   tm-tools, so that tone would have rendered unstyled. Each `main.css` now has
+   `@source "../../../node_modules/@tuanmjnh/tm-ui/dist"`.
+
+`file:` was measured and rejected for local iteration: pnpm copies it into
+`.pnpm`, so source edits need a forced reinstall.
+
+Measured after the migration:
+
+| Gate | tm-hub | tm-tools | tm-studio |
+|---|---|---|---|
+| `pnpm typecheck` | 0 | 0 | 0 |
+| `pnpm test` | 268 pass | 68 pass | 144 + 83 pass |
+| `pnpm build` | pass | pass | pass |
+| Badge mounted in a real page | yes (8 pills) | yes | module imported; table empty |
+| `active:scale-95` in source / built CSS | 0 / 1 | 0 / 1 | 0 / 1 |
+| All 7 semantic tones in built CSS | yes | yes | yes |
+
+The `0 / 1` row is the proof the component comes from the package: the class
+exists in no app source (the local copies were deleted) yet appears in every
+built stylesheet, which is only possible through the `@source` scan.
+
+### ListFooter and RecordCount extracted afterwards
+
+`shared/ListFooter.vue` was identical in all three apps (only Prettier
+formatting differed) and `shared/RecordCount.vue` had no direct users, so both
+moved into the package. To keep `@tuanmjnh/tm-ui` free of an i18n dependency,
+the three strings became props (`recordsLabel`, `loadingLabel`, `noMoreLabel`);
+each app keeps a six-line wrapper that passes `t(...)` and forwards the
+`left`/`right` slots. All 27 call sites are untouched.
+
+Measured after the second pass (all three apps):
+
+| Gate | tm-hub | tm-tools | tm-studio |
+|---|---|---|---|
+| `pnpm typecheck` | 0 | 0 | 0 |
+| `pnpm test` | 268 pass | 68 pass | 144 + 83 pass |
+| `pnpm build` | pass | pass | pass |
+| `ListFooter` mounted in a real page | 14 Record(s) | 50 Record(s) | 0 Record(s) |
+| computed `min-height` | 32px | 32px | 32px |
+
+The 32px is real evidence again: `min-h-8` appears **0 times** in tm-tools' app
+source (the wrapper has no markup of its own) but resolves to `32px` in the
+browser, which only the package's class string can produce.
+
+### ModelSelect extracted, and the defect that exposed
+
+tm-tools gained a substantially upgraded `aiProviders/ModelSelect.vue`
+(searchable, virtualised, paged scroll, a connection-check button with a
+hover error popover and error classification). tm-hub had an older copy of the
+same idea, so both moved to the package.
+
+The package version is dependency-free: no `@vueuse/core` (the linked checkout
+cannot resolve it), no `$fetch`, no `useNotify`, no `useI18n`. The app supplies
+`checkModel` as a callback and the labels as props, and the component emits
+`check:success` / `check:error` for the host to toast. Infinite scroll became one
+passive listener on `USelectMenu`'s exposed `viewportRef`.
+
+**The defect.** After wiring it up, reading the live DOM showed
+`<uselectmenu>`, `<ubutton>`, `<utooltip>` and `<ubadge>` as literal unknown
+elements. Nuxt UI v4 resolves its components through a **build-time**
+auto-import that only rewrites files the app compiles itself. This package ships
+**precompiled** `dist/*.js`, so every `resolveComponent('UBadge')` fell through
+to the app's runtime registry, found nothing, and Vue rendered the tag name.
+
+This was already live for `StatusBadge` and `ListFooter` before this step —
+tm-hub had a `tm-ui-globals.client.ts` covering `UBadge`/`UIcon`, which is why
+its pills looked right and hid the problem. Every static gate passed throughout:
+`pnpm build`, `pnpm typecheck` and the package's own SSR render tests (which stub
+the primitives) all stayed green while the UI was missing.
+
+**The fix.** Register the six primitives the dist resolves, in all three apps:
+
+```ts
+// app/plugins/tm-ui-globals.client.ts
+import { UBadge, UIcon, UButton, USelectMenu, UTooltip, UPopover } from '#components'
+```
+
+That list is exactly `grep -oh 'resolveComponent("[A-Za-z]*")' dist/*.js | sort -u`
+— it must be re-checked whenever a component is added, because a missing entry is
+silent. All three apps are SPA (`ssr: false`), so a `.client` plugin is enough.
+
+Measured after the fix, reading `document.querySelectorAll('*')` for tag names
+matching `/^u[a-z]/`, on a signed-in page in each app:
+
+| App | Unresolved tags before | After | Footer check |
+|---|---|---|---|
+| tm-hub | `ubadge`×14, `uicon`×14 | none | 14 Record(s), 32px |
+| tm-tools | `uselectmenu`, `ubutton`, `utooltip` | none | — (picker: 20 options, search placeholder "Select model") |
+| tm-studio | — | none | 0 Record(s), 32px |
+
+One tools spec pinned the old implementation by source regex
+(`ai_relay_ui.spec.ts`). The behaviour is unchanged, so the reads were repointed
+at the wrapper *and* the package source; no assertion was dropped — the count went
+68/68 with the same checks.
+
+### Publish runbook for `@tuanmjnh/tm-ui`
+
+`node scripts/release.mjs list` reports `tm-ui 0.1.0 ready unpublished`.
+When the OTP is available:
+
+```bash
+pnpm release:publish:ui     # publishes ./dist after rebuilding it
+pnpm tm-ui:registry         # switches all three apps from link: to ^0.1.0
+```
+
+`pnpm tm-ui:link` reverses it. `minimumReleaseAgeExclude` already lists
+`@tuanmjnh/tm-ui@0.1.0` in all three apps, so the fresh publish will not be
+refused by the supply-chain policy. The Vite `fs.allow` and Tailwind `@source`
+entries are harmless once the package resolves from `node_modules`.
 
 ### Two defects found and fixed while executing
 
