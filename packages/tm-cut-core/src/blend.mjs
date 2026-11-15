@@ -1,4 +1,4 @@
-// tm-cut-core — clip blend mode (Zero-FFmpeg slice F6d).
+// tmcut-core — clip blend mode (Zero-FFmpeg slice F6d).
 //
 // A video clip can composite over the footage beneath it with a pixel-wise
 // blend instead of the plain overlay. ONE name drives the monitor's CSS

@@ -1,4 +1,4 @@
-// tm-cut-core — renderAt tests (V4 Phase 2, item 1). Run: node --test test/
+// tmcut-core — renderAt tests (V4 Phase 2, item 1). Run: node --test test/
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { renderAt } from '../src/renderAt.mjs'

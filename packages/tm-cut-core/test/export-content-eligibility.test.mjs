@@ -1,4 +1,4 @@
-// tm-cut-core — export content eligibility. Run: node --test test/
+// tmcut-core — export content eligibility. Run: node --test test/
 //
 // Slice H3d gives `createEncodeSession` its first caller. H3c proved the seam can
 // turn samples into a file; it said nothing about which projects the app may hand

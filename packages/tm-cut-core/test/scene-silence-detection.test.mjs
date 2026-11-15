@@ -1,4 +1,4 @@
-// tm-cut-core — decoder-side detection laws (zero-FFmpeg slice E1). Run:
+// tmcut-core — decoder-side detection laws (zero-FFmpeg slice E1). Run:
 // node --test "test/*.test.mjs"
 //
 // Slice B/C/D proved a container can be read and a frame can be drawn on both

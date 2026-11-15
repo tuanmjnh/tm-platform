@@ -1,4 +1,4 @@
-// tm-cut-core — export plate rect. Run: node --test test/
+// tmcut-core — export plate rect. Run: node --test test/
 //
 // The exporter's painter is one `drawImage` call, and that call takes two
 // rectangles: which pixels of the decoded frame to read, and where on the canvas

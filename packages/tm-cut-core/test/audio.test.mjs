@@ -1,4 +1,4 @@
-// tm-cut-core — audio fade / gain tests (Roadmap C12). Run: node --test "test/*.test.mjs"
+// tmcut-core — audio fade / gain tests (Roadmap C12). Run: node --test "test/*.test.mjs"
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { fadeDuration, gainAt, isTrackMuted } from '../src/audio.mjs'

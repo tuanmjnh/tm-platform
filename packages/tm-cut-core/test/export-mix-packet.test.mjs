@@ -1,4 +1,4 @@
-// tm-cut-core — the samples one export packet holds. Run: node --test test/
+// tmcut-core — the samples one export packet holds. Run: node --test test/
 //
 // `audioMixAt.mjs` answers WHICH layers sound at one tick, at what gain, at what
 // position in their own file and at what rate — and its own header says it never

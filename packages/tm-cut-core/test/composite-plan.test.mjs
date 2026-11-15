@@ -1,4 +1,4 @@
-// tm-cut-core — composite plan tests. Run: node --test test/
+// tmcut-core — composite plan tests. Run: node --test test/
 //
 // The plan is the answer BOTH hosts paint from: which layer of each footage row
 // owns its slot, which layer is a transition's outgoing partner, and what is

@@ -1,4 +1,4 @@
-// tm-cut-core — assets / probe / cache tests. Run: node --test "test/*.test.mjs"
+// tmcut-core — assets / probe / cache tests. Run: node --test "test/*.test.mjs"
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {

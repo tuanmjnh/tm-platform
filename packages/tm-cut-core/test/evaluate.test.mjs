@@ -1,4 +1,4 @@
-// tm-cut-core — timeline evaluation tests. Run: node --test test/
+// tmcut-core — timeline evaluation tests. Run: node --test test/
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { clipSourceRange, evaluateClip, evaluateTimeline, projectTracks, textAnimationAt } from '../src/evaluate.mjs'

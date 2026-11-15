@@ -1,4 +1,4 @@
-// tm-cut-core — the colour a painted export frame starts from. Run: node --test test/
+// tmcut-core — the colour a painted export frame starts from. Run: node --test test/
 //
 // `planEncodePlate` says where one layer lands; it says nothing about what is
 // UNDER it. A painter that forgets to clear re-uses the previous frame's pixels

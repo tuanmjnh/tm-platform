@@ -1,4 +1,4 @@
-// tm-cut-core — public API declarations.
+// tmcut-core — public API declarations.
 // Types come from ../types/ (single source of truth); this file only binds
 // them to the runtime engine's function signatures. Checked by
 // tsconfig.check.json (pnpm typecheck:core), not by ESLint.
@@ -2309,6 +2309,21 @@ export function planBlobUrlLifecycle(
   held: Record<string, string | null>,
   wanted: Iterable<string>
 ): TmcutBlobUrlLifecycle
+
+/**
+ * Which url a media element should mount now.
+ *
+ * A `pending` entry is the url to adopt when playback stops: assigning `src` on
+ * a playing element pauses it and resets currentTime (measured in Chromium), so
+ * the cache landing mid-play waits for the pause. `sameMedia` is the caller's
+ * fact that both urls name one file — a different clip is adopted immediately.
+ */
+export function planPlaybackSourceCommit(input: {
+  current?: string | null
+  desired?: string | null
+  playing?: boolean
+  sameMedia?: boolean
+} | null): { src: string, pending: string | null }
 
 // --- Export encode laws (zero-FFmpeg slice H1, ladder in H2) ---
 /** The parenthetical both encode paths use when an edge has no chroma block. */

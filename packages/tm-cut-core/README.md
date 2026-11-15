@@ -1,4 +1,4 @@
-# tm-cut-core
+# tmcut-core
 
 The pure editing engine behind TMCut. Zero dependencies, plain ESM, runs on bare Node.
 
@@ -11,7 +11,7 @@ the Electron window: both ask this package, and neither keeps a second copy of t
 core decides  →  app/ and electron/ execute
 ```
 
-`app/` reads this package through the Nuxt alias `tm-cut-core`, which resolves to
+`app/` reads this package through the Nuxt alias `tmcut-core`, which resolves to
 `packages/core/src/index.mjs` (`nuxt.config.ts:21,107`). The Electron main process reads the same
 source tree by relative path. `dist/` exists only for npm and is never a source dependency.
 
@@ -240,12 +240,12 @@ of any build script the repository runs.
 ## 8. How the app consumes this package
 
 ```ts
-import { TICKS_PER_SECOND, evaluateTimeline, renderAt } from 'tm-cut-core'
+import { TICKS_PER_SECOND, evaluateTimeline, renderAt } from 'tmcut-core'
 ```
 
-- **One name.** The Nuxt alias equals the package name, `tm-cut-core` (`nuxt.config.ts:21,107`).
+- **One name.** The Nuxt alias equals the package name, `tmcut-core` (`nuxt.config.ts:21,107`).
   `tsconfig.test.json` maps the same name to the same file for the node spec runner.
-- **Bare imports only.** A subpath such as `tm-cut-core/generationAdapter` cannot work: Vite treats
+- **Bare imports only.** A subpath such as `tmcut-core/generationAdapter` cannot work: Vite treats
   a string alias as a prefix and would rewrite it onto `packages/core/src/index.mjs`, which is a
   file. `tests/unit/tmcut_core_source.spec.ts:261` fails the suite if a subpath import appears.
 - **`src`, not `dist`.** Reading the built artifact is the bug G13 measured: one process can end

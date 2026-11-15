@@ -1,4 +1,4 @@
-// tm-cut-core types — public barrel. Type-only: importing these files
+// tmcut-core types — public barrel. Type-only: importing these files
 // must never pull runtime code into any bundle.
 export * from './dsl.js'
 export * from './media.js'

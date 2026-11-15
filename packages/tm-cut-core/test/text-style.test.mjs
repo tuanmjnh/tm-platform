@@ -1,4 +1,4 @@
-// tm-cut-core — text style tests. Run: node --test test/
+// tmcut-core — text style tests. Run: node --test test/
 //
 // The numbers below are written out, not re-derived from the functions: a test
 // that recomputes `fontSize / 18` would pass even if the law changed, and the

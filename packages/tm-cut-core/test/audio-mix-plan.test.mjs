@@ -1,4 +1,4 @@
-// tm-cut-core — which layers make sound at one tick (Zero-FFmpeg slice G3).
+// tmcut-core — which layers make sound at one tick (Zero-FFmpeg slice G3).
 // Run: node --test "test/*.test.mjs"
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'

@@ -1,4 +1,4 @@
-// tm-cut-core — scheduler tests. Run: node --test test/
+// tmcut-core — scheduler tests. Run: node --test test/
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createFrameScheduler } from '../src/scheduler.mjs'

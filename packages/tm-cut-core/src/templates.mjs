@@ -1886,7 +1886,7 @@ export function filterTemplates(templates, options = {}) {
 /**
  * Snapshot a host timeline into a reusable template.
  *
- * C16-R3: the host model stores integer TICKS (tm-cut-core time.mjs), so
+ * C16-R3: the host model stores integer TICKS (tmcut-core time.mjs), so
  * flat item geometry (in/out/offset) and marker times are ticks here too.
  * Duration is derived from the largest item end.
  */

@@ -1,6 +1,6 @@
 // MediaProbeService contract (zero-FFmpeg plan §4). Type-only.
 //
-// The host collects a descriptor from whatever demuxer it runs, and tm-cut-core
+// The host collects a descriptor from whatever demuxer it runs, and tmcut-core
 // turns it into `TmcutMediaInfo`. Only fields the host actually read are
 // populated: an absent field means "no evidence", never a guessed default.
 import type { FrameRate } from './dsl.js'

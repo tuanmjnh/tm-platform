@@ -1,4 +1,4 @@
-// tm-cut-core — still-image tests. Run: node --test "test/*.test.mjs"
+// tmcut-core — still-image tests. Run: node --test "test/*.test.mjs"
 //
 // One question, one answer: "is this file a still, and is it a VECTOR still?"
 // The extension law used to live in two lists that disagreed (core said `svg`

@@ -1,4 +1,4 @@
-// tm-cut-core — where a sound is in its own file, and how fast it runs (Zero-FFmpeg slice G4).
+// tmcut-core — where a sound is in its own file, and how fast it runs (Zero-FFmpeg slice G4).
 // Run: node --test "test/*.test.mjs"
 //
 // G3 answered WHICH layers sound and at WHAT gain. The screen still decided the

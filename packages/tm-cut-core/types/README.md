@@ -1,4 +1,4 @@
-# tm-cut-core types
+# tmcut-core types
 
 Shared Timeline DSL v3 types for TMCut (docs §14).
 

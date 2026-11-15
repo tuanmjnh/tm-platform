@@ -1,4 +1,4 @@
-// tm-cut-core — paint stack tests. Run: node --test test/
+// tmcut-core — paint stack tests. Run: node --test test/
 //
 // The row law (G18) is asserted as OUTCOMES — which track is at the BOTTOM of
 // the stack — never as a re-run of the filter: a test that recomputed

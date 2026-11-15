@@ -1,4 +1,4 @@
-// tm-cut-core is linted with the tm-studio root flat config as the single
+// tmcut-core is linted with the tm-studio root flat config as the single
 // source of truth. Run from tm-studio: pnpm lint:core
 import { createRequire } from 'node:module'
 import base from '../../eslint.config.mjs'
