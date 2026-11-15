@@ -220,7 +220,7 @@ async function build() {
 // over this file.
 import type { Component } from 'vue'
 import {
-${sorted.map(n => `  ${n},`).join('\n')}
+${sorted.map(n => `  ${n}`).join(',\n')}
 } from '#components'
 
 export default defineNuxtPlugin((nuxtApp) => {
