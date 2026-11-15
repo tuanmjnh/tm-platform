@@ -50,12 +50,6 @@
   "peerDependenciesMeta": {
     "@nuxt/ui": {
       "optional": true
-    },
-    "@he-tree/vue": {
-      "optional": true
-    },
-    "sortablejs": {
-      "optional": true
     }
   },
   "devDependencies": {

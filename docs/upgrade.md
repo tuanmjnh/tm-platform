@@ -172,6 +172,17 @@ entry: it is what pulls the package's classes into the stylesheet, and it must
 point at the package root rather than `dist/` (§0.2). The `fs.allow` entry only
 matters for `link:` and is harmless afterwards.
 
+**Every app must also declare the three runtime peers itself:** `@he-tree/vue`,
+`sortablejs`, `@vueuse/core`. They are *required* peers, not optional ones — the
+barrel re-exports `HeTreeMenu`, `GridList` and `SwipeCard`, so each module's
+`import` runs even when nothing renders it, and a missing peer throws
+`ERR_MODULE_NOT_FOUND` at import time. Under `link:` pnpm resolves them through
+the symlinked package and the omission stays hidden; a registry install looks for
+them in the app's own `node_modules` and fails. tm-studio declares only two of
+the three today, which is fine only while it stays on `link:`.
+`packages/tm-ui/tests/peer-guard.test.mjs` fails if a peer is marked optional
+while `dist` imports it statically.
+
 ## 1. `file:` → registry version
 
 Every app used to resolve shared code through a relative path:
