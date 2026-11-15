@@ -178,10 +178,46 @@ barrel re-exports `HeTreeMenu`, `GridList` and `SwipeCard`, so each module's
 `import` runs even when nothing renders it, and a missing peer throws
 `ERR_MODULE_NOT_FOUND` at import time. Under `link:` pnpm resolves them through
 the symlinked package and the omission stays hidden; a registry install looks for
-them in the app's own `node_modules` and fails. tm-studio declares only two of
-the three today, which is fine only while it stays on `link:`.
-`packages/tm-ui/tests/peer-guard.test.mjs` fails if a peer is marked optional
-while `dist` imports it statically.
+them in the app's own `node_modules` and fails. All three apps declare all three
+today. `packages/tm-ui/tests/peer-guard.test.mjs` fails if a peer is marked
+optional while `dist` imports it statically.
+
+## `tm-cut-core` — the TMCut engine
+
+The engine used to live in `tm-studio/packages/core` as `tmcut-core`, resolved
+through a Vite alias pointed at `src/index.mjs`. It now lives here as
+`tm-cut-core` and tm-studio consumes it with a `link:` dependency, the same way
+it consumes `tm-core` and `tm-ui`.
+
+What moved, and what each host reads:
+
+| Consumer | How it resolves the engine |
+|---|---|
+| Vue app and its specs | the alias `tm-cut-core` → `node_modules/tm-cut-core/src/index.mjs` (nuxt.config + `tsconfig.test.json`) |
+| Electron main | a relative path to `../../../node_modules/tm-cut-core/src/*.mjs` |
+| Unit specs that read engine files | `node_modules/tm-cut-core/<path>` |
+
+`src` remains the only artifact either host loads — `dist/` is what `npm publish`
+ships and is never read at runtime, which is ADR-022's rule unchanged. The
+location guard in `tm-studio/tests/unit/tmcut_core_source.spec.ts` still checks
+all eleven of its conditions; only the paths it names moved, so a specifier that
+resolves outside the repo still fails.
+
+Two consequences worth knowing:
+
+- **Electron packaging follows the symlink.** `electron-builder.yml` ships
+  `node_modules/tm-cut-core/src/**/*`; the resolved tree is copied into
+  `app.asar`. Verified on a real `build:electron:dir`: `generationAdapter.mjs`,
+  `providerAdapter.mjs` and `index.mjs` are present, 63 src entries in total.
+- **`node --test` will not scan inside `node_modules`.** The core's own 927
+  tests therefore run from the package directory:
+  `cd node_modules/tm-cut-core && node --test "test/*.test.mjs"`, which is what
+  tm-studio's `test:core` script does. A glob passed from the app root silently
+  runs zero tests.
+- **`lint:core` was removed.** ESLint 10 refuses any path under `node_modules`
+  and the core now sits outside this repo's base path, so no configuration makes
+  that script work. Lint it from `tm-platform` if you add a config there; it was
+  never part of the publish gate (`prepublishOnly` runs test + check + build).
 
 ## 1. `file:` → registry version
 
@@ -228,7 +264,7 @@ minimumReleaseAgeExclude:
 | `@tuanmjnh/tm-validators` | Zod schemas; the app must supply `zod` |
 | `@tuanmjnh/tm-utils` | Pure functions, no browser/Node/Electron imports |
 | `tm-hub-client` | Control-plane SDK; unaffected by the AI work |
-| `tm-cut-core` | Editing engine; the studio reads it by source alias, so only change this if that alias moves |
+| `tm-cut-core` | Editing engine, zero dependencies. The studio reads `src` through a `link:` dependency; `dist` exists only for `npm publish`. Its 927 tests run from the package directory — see the section above |
 | `@tuanmjnh/tm-ui` | `vue` is a peer; `@nuxt/ui` stays the app's own dependency. Ships the base set — `Page`, `HeaderActions`, `SettingsPage`, `SectionNav`, the four modals, `Table`, `GridList`, `SwipeCard`, `HeTreeMenu`, `EmptyState`, `RowActions`, `ViewModeToggle`, `FilterPopover`, `PasswordInput`, the bento/backdrop decor, and the AI trio (`StatusBadge`, `ListFooter`, `ModelSelect`). Every user-visible string is a prop, so the package has no i18n; each app keeps a thin wrapper supplying `t(...)`. Needs all four items from §0 — `fs.allow`, `@source`, the generated primitive plugin, and one Vue instance. `@source` and the registration apply to a registry install too; only `fs.allow` is `link:`-specific |
 
 ## 2. AI connection modes
@@ -309,3 +345,27 @@ document.querySelectorAll('ubadge').length   // must be 0
 
 `app._context.components` containing the names from step 3 proves the plugin
 landed; only the DOM proves the component drew.
+
+## Publishing
+
+`scripts/release.mjs` is the only publish path; it builds each package's `dist`,
+refuses a stale one, and skips any version already on the registry.
+
+```bash
+pnpm release:login          # npm auth, once per machine
+pnpm release:list           # version, dist state and registry state per package
+pnpm release:publish --dry-run
+pnpm release:publish        # publishes everything not yet on the registry
+```
+
+Single packages have their own aliases (`release:publish:core`,
+`release:publish:cut-core`, `release:publish:ui`, …).
+
+Two things bite on a re-publish:
+
+- **A version already on the registry is skipped, not overwritten.** npm never
+  accepts the same number twice, so bump first. `tm-ui@0.1.0` and
+  `tm-cut-core@0.1.0` both exist on the registry as *older* builds; publishing
+  today's code needs `0.1.1`.
+- **`pnpm` refuses a package published minutes ago.** Add the exact version to
+  `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` before installing it.
