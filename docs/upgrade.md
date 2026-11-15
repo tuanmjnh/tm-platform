@@ -65,30 +65,19 @@ node ../tm-platform/scripts/check-tmui-css.mjs   # run from the app dir
    function calls `resolveComponent(…)` rather than receiving an injected
    auto-import. Nuxt rewrites auto-imports only in files it compiles itself, so
    for a package each of those lookups falls through to the app's global
-   component registry. Take the list from the dist, not from the component you
-   happen to be looking at — the badge needs two primitives, `ModelSelect` needs
-   four more:
+   component registry. Do not assemble this list by hand — the build already
+   scans every compiled module and writes both the list and the plugin:
 
 ```bash
-grep -o 'resolveComponent("[A-Za-z]*")' node_modules/@tuanmjnh/tm-ui/dist/*.js | sort -u
-# UBadge, UButton, UIcon, UPopover, USelectMenu, UTooltip
+cat node_modules/@tuanmjnh/tm-ui/dist/primitives.json
+cp node_modules/@tuanmjnh/tm-ui/dist/tm-ui-globals.client.ts.txt \
+   app/plugins/tm-ui-globals.client.ts
 ```
 
-```ts
-// app/plugins/tm-ui-globals.client.ts
-import { UBadge, UButton, UIcon, UPopover, USelectMenu, UTooltip } from '#components'
-
-export default defineNuxtPlugin((nuxtApp) => {
-  nuxtApp.vueApp.component('UBadge', UBadge)
-  nuxtApp.vueApp.component('UButton', UButton)
-  nuxtApp.vueApp.component('UIcon', UIcon)
-  nuxtApp.vueApp.component('UPopover', UPopover)
-  nuxtApp.vueApp.component('USelectMenu', USelectMenu)
-  nuxtApp.vueApp.component('UTooltip', UTooltip)
-})
-```
-
-   Re-run that grep after every package upgrade: a new component can add a
+   The generated plugin registers each name with the `Component` cast that
+   `UTable` needs (it is generic over the row type) and carries no trailing
+   comma, so it drops into a repo running `commaDangle: 'never'` without a lint
+   pass. Re-copy it after every package upgrade: a new component can add a
    primitive nobody registered yet, and the omission is silent in the worst way.
    A display `StatusBadge` renders `<ubadge label="…" color="success">` as an
    unknown element — an empty pill, no console error, `nuxt build` and
@@ -145,6 +134,26 @@ curl -s "http://localhost:4000/_nuxt/@fs/<abs>/packages/tm-ui/dist/StatusBadge.j
    including `Cannot find module 'vue'` in a layer file that has no dependency of
    its own. `tm-hub` links today because it already declares `vue` itself; it was
    missing step 3 only.
+
+   **The type checker has its own version of this problem, and it fails
+   differently.** Even when Vite serves one runtime copy, `vue-tsc` follows the
+   package's `.d.ts`, which re-imports `vue` from the package's own
+   `node_modules` — a second module identity. Every Nuxt augmentation stops
+   applying to files that import the package, and the symptoms are unrelated to
+   the package: `tm-hub` showed **149 `Property '$t' does not exist`** errors
+   across files that had not been touched. Pin the specifier in each app:
+
+```ts
+// nuxt.config.ts — under typescript.tsConfig.compilerOptions
+paths: {
+  'vue': ['../node_modules/vue'],
+  'vue/*': ['../node_modules/vue/*']
+}
+```
+
+   Pin the package's `vue` to the app's version too, and move anything the
+   package only needs at runtime (`@he-tree/vue`, `sortablejs`, `@vueuse/core`)
+   into `peerDependencies`. Pinning `paths` is what took the count from 149 to 0.
 
 Do not use `file:` for local iteration: pnpm copies it into `.pnpm`, so edits
 need a forced reinstall and it is easy to believe a change landed when it did
@@ -209,7 +218,7 @@ minimumReleaseAgeExclude:
 | `@tuanmjnh/tm-utils` | Pure functions, no browser/Node/Electron imports |
 | `tm-hub-client` | Control-plane SDK; unaffected by the AI work |
 | `tm-cut-core` | Editing engine; the studio reads it by source alias, so only change this if that alias moves |
-| `@tuanmjnh/tm-ui` | `vue` is a peer; `@nuxt/ui` stays the app's own dependency. Exports `StatusBadge`, `ListFooter` and `ModelSelect`; `ListFooter` takes its three labels as props, so each app keeps a thin wrapper that supplies `t(...)`. Needs all four items from §0 — `fs.allow`, `@source`, the `UBadge`/`UIcon`/`UButton`/`USelectMenu`/`UTooltip`/`UPopover` registration, and one Vue instance. `@source` and the registration apply to a registry install too; only `fs.allow` is `link:`-specific |
+| `@tuanmjnh/tm-ui` | `vue` is a peer; `@nuxt/ui` stays the app's own dependency. Ships the base set — `Page`, `HeaderActions`, `SettingsPage`, `SectionNav`, the four modals, `Table`, `GridList`, `SwipeCard`, `HeTreeMenu`, `EmptyState`, `RowActions`, `ViewModeToggle`, `FilterPopover`, `PasswordInput`, the bento/backdrop decor, and the AI trio (`StatusBadge`, `ListFooter`, `ModelSelect`). Every user-visible string is a prop, so the package has no i18n; each app keeps a thin wrapper supplying `t(...)`. Needs all four items from §0 — `fs.allow`, `@source`, the generated primitive plugin, and one Vue instance. `@source` and the registration apply to a registry install too; only `fs.allow` is `link:`-specific |
 
 ## 2. AI connection modes
 
