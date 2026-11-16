@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import {
   toUpperCase, toLowerCase, toCapitalize, toSentenceCase, toCamelCase, toPascalCase,
   toKebabCase, toSnakeCase, toConstantCase, toAlternatingCase, toInverseCase,

@@ -387,6 +387,7 @@
 
 
 <script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
 import UtilitiesTextPane from './UtilitiesTextPane.vue'
 import {
   encodeBase64, decodeBase64, encodeUrl, decodeUrl, escapeHtml, unescapeHtml,
