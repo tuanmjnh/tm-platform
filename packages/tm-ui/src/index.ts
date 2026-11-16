@@ -26,6 +26,12 @@ export { default as SwipeCard } from './gridlist/SwipeCard.vue'
 
 export { default as HeTreeMenu } from './shared/HeTreeMenu.vue'
 
+export { default as UtilitiesToolTabs } from './utilities/UtilitiesToolTabs.vue'
+export { default as UtilitiesTextPane } from './utilities/UtilitiesTextPane.vue'
+export { default as UtilitiesTextPanel } from './utilities/UtilitiesTextPanel.vue'
+export { default as UtilitiesEncodePanel } from './utilities/UtilitiesEncodePanel.vue'
+export { default as UtilitiesRandomPanel } from './utilities/UtilitiesRandomPanel.vue'
+
 export type { HeaderAction, HeaderActionChild } from './types/HeaderActions'
 export type { GridColumn, GridSwipeAction, GridListLabels } from './types/GridList'
 export type { EmptyStateAction } from './types/EmptyState'

@@ -9,7 +9,10 @@ import {
   PasswordInput,
   Table,
   ViewModeToggle,
-  mobileActionLayout
+  mobileActionLayout,
+  UtilitiesRandomPanel,
+  UtilitiesToolTabs,
+  UtilitiesTextPane
 } from '../dist/index.js'
 
 // Peer primitives are stubbed so the assertions are about this package's
@@ -44,7 +47,11 @@ const stubs = {
   UFieldGroup: passthrough('div'),
   UPopover: passthrough('div'),
   UTable: passthrough('div'),
-  UPagination: passthrough('nav')
+  UPagination: passthrough('nav'),
+  UTabs: passthrough('div'),
+  USlider: passthrough('div'),
+  UCheckbox: passthrough('div'),
+  UBadge: passthrough('span')
 }
 
 const mount = async (component, props, slots) => {
@@ -148,6 +155,38 @@ const mount = async (component, props, slots) => {
   const layout = mobileActionLayout([{ icon: 'x', label: 'Export', primary: true, children: [{ label: 'CSV' }] }])
   assert.equal(layout.inline.length, 0)
   assert.equal(layout.overflow.length, 1)
+}
+
+// 11. Utility panels translate through the `t` prop, not useI18n
+{
+  const t = key => `T:${key}`
+  const html = await mount(UtilitiesRandomPanel, { t })
+  assert.match(html, /T:utilities\.random\.types\.password/, 'the panel asks the host for its text')
+  assert.match(html, /T:utilities\.random\.generate/, 'and for every label it renders')
+}
+
+// 12. UtilitiesToolTabs renders host-supplied items as tabs
+{
+  const html = await mount(UtilitiesToolTabs, {
+    active: 'text',
+    items: [
+      { label: 'Văn bản', value: 'text', icon: 'i-lucide-type' },
+      { label: 'Mã hoá', value: 'encode', icon: 'i-lucide-lock' }
+    ]
+  })
+  assert.match(html, /Văn bản/, 'tab labels come from the host')
+  assert.match(html, /Mã hoá/, 'and are not hard-coded in the package')
+}
+
+// 13. UtilitiesTextPane counts characters from the value it was given
+{
+  const html = await mount(UtilitiesTextPane, {
+    t: key => key,
+    label: 'Input',
+    modelValue: 'hello world'
+  })
+  assert.match(html, /11/, 'the character count is the value length')
+  assert.match(html, /Input/, 'the label renders')
 }
 
 console.log('base components tests passed')

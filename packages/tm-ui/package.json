@@ -45,7 +45,8 @@
     "@vueuse/core": "^14.0.0 || ^15.0.0",
     "vue": "^3.5.0",
     "@he-tree/vue": "^2.10.1",
-    "sortablejs": "^1.15.0"
+    "sortablejs": "^1.15.0",
+    "@tuanmjnh/tm-core": "^0.1.0"
   },
   "peerDependenciesMeta": {
     "@nuxt/ui": {
@@ -59,6 +60,7 @@
     "vue": "3.5.44",
     "@he-tree/vue": "^2.10.1",
     "sortablejs": "^1.15.2",
-    "@vueuse/core": "^15.0.0"
+    "@vueuse/core": "^15.0.0",
+    "@tuanmjnh/tm-core": "link:../tm-core"
   }
 }
