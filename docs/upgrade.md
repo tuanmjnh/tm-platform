@@ -3,17 +3,31 @@
 Two migrations: moving dependencies from a `file:` link to a registry version,
 and moving AI connections from implicit to explicit modes.
 
-## 0. Local mode (until a package is published)
+## 0. Registry install (current state)
 
-`@tuanmjnh/tm-ui` has no registry release yet, so the three apps consume it from
-the workspace with a `link:` spec while that is the case:
+All three apps install `@tuanmjnh/tm-core`, `@tuanmjnh/tm-ui` and `tm-cut-core`
+from npm:
 
 ```json
-"@tuanmjnh/tm-ui": "link:../tm-platform/packages/tm-ui"
+"@tuanmjnh/tm-core": "^0.1.2",
+"@tuanmjnh/tm-ui": "^0.1.4",
+"tm-cut-core": "^0.1.1"
 ```
 
+What is still required with a registry install is `@source`, the generated
+primitive plugin and the release-age gate — the three items in §0.2, §0.3 and
+§1 that are not about symlinks. The `fs.allow` entry and the `vue` path pin were
+needed only by `link:` and have been removed from all three apps.
+
+### Historical: what `link:` required
+
+The sections below describe the `link:` arrangement these packages used before
+their first release. They are kept because a local iteration cycle may want it
+back — `pnpm tm-ui:link` flips the specifier — and because every failure mode
+they document is one a reader will meet again.
+
 `link:` is a symlink, so an edit under `packages/tm-ui/src` is visible after
-`pnpm build` in the package — no reinstall. Four things are required because the
+`pnpm build` in the package — no reinstall. Four things were required because the
 symlink points outside the consuming project, and each one fails quietly:
 
 1. **Vite dev must be allowed to serve it.** Without this, the browser gets
@@ -159,22 +173,21 @@ Do not use `file:` for local iteration: pnpm copies it into `.pnpm`, so edits
 need a forced reinstall and it is easy to believe a change landed when it did
 not.
 
-Once the package is on the registry, switch all three apps at once:
+Both directions still work and both name all three apps:
 
 ```bash
-pnpm tm-ui:registry   # link: -> ^0.1.0, version read from the package manifest
+pnpm tm-ui:registry   # link: -> ^<version>, version read from the package manifest
 pnpm tm-ui:link       # back to the local symlink
 ```
 
-`minimumReleaseAgeExclude` in each app's `pnpm-workspace.yaml` lists the
-published `@tuanmjnh/tm-ui` version, so a fresh publish is not refused. Keep the
-`@source` entry: it is what pulls the package's classes into the stylesheet, and
-it must point at the package root rather than `dist/` (§0.2). The `fs.allow`
-entry only matters for `link:` and is harmless afterwards.
+`minimumReleaseAgeExclude` in each app's `pnpm-workspace.yaml` lists every
+published version it needs, so a fresh publish is not refused. Keep the `@source`
+entry: it is what pulls the package's classes into the stylesheet, and it must
+point at the package root rather than `dist/` (§0.2).
 
-tm-ui also needs `@tuanmjnh/tm-core` as its own peer now: the utilities panels
-import the generators from it. Apps already depend on tm-core, so nothing extra
-is required there — but a registry install of tm-ui without tm-core will fail to
+tm-ui also needs `@tuanmjnh/tm-core` as its own peer: the utilities panels import
+the generators from it. Apps already depend on tm-core, so nothing extra is
+required there — but a registry install of tm-ui without tm-core will fail to
 import.
 
 **Every app must also declare the three runtime peers itself:** `@he-tree/vue`,
