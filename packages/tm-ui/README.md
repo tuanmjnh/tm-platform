@@ -21,8 +21,15 @@ from the app's theme.
 | Page chrome | `Page`, `HeaderActions`, `SettingsPage`, `SectionNav` |
 | Modals | `ConfirmModal`, `FormModal`, `ResponsiveModal`, `ResponsiveSlideover` |
 | List surface | `Table`, `GridList`, `SwipeCard`, `HeTreeMenu`, `EmptyState`, `RowActions`, `ViewModeToggle`, `FilterPopover` |
+| Utilities | `UtilitiesToolTabs`, `UtilitiesTextPane`, `UtilitiesTextPanel`, `UtilitiesEncodePanel`, `UtilitiesRandomPanel` |
 | Decor | `BentoCard`, `BentoGrid`, `AppBackdrop` |
 | Inputs | `PasswordInput` |
+
+The utilities panels take a `t` function as a prop and emit `copied` /
+`copy-error` instead of calling `useToast`. That is what lets the package carry
+no i18n and no Nuxt UI composable while the host keeps both the wording and the
+acknowledgement. Their generators (`encodeBase64`, `toCamelCase`,
+`generatePassword`, …) live in `@tuanmjnh/tm-core`, which tm-ui now depends on.
 
 `RowActions`, `ViewModeToggle`, `FilterPopover` and `EmptyState` used to live
 under `src/admin/`. They are ordinary list-page parts — every app uses them on

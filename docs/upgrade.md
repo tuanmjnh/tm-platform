@@ -166,11 +166,16 @@ pnpm tm-ui:registry   # link: -> ^0.1.0, version read from the package manifest
 pnpm tm-ui:link       # back to the local symlink
 ```
 
-`minimumReleaseAgeExclude` in each app's `pnpm-workspace.yaml` already lists
-`@tuanmjnh/tm-ui@0.1.0`, so a fresh publish is not refused. Keep the `@source`
-entry: it is what pulls the package's classes into the stylesheet, and it must
-point at the package root rather than `dist/` (§0.2). The `fs.allow` entry only
-matters for `link:` and is harmless afterwards.
+`minimumReleaseAgeExclude` in each app's `pnpm-workspace.yaml` lists the
+published `@tuanmjnh/tm-ui` version, so a fresh publish is not refused. Keep the
+`@source` entry: it is what pulls the package's classes into the stylesheet, and
+it must point at the package root rather than `dist/` (§0.2). The `fs.allow`
+entry only matters for `link:` and is harmless afterwards.
+
+tm-ui also needs `@tuanmjnh/tm-core` as its own peer now: the utilities panels
+import the generators from it. Apps already depend on tm-core, so nothing extra
+is required there — but a registry install of tm-ui without tm-core will fail to
+import.
 
 **Every app must also declare the three runtime peers itself:** `@he-tree/vue`,
 `sortablejs`, `@vueuse/core`. They are *required* peers, not optional ones — the
@@ -365,7 +370,8 @@ Two things bite on a re-publish:
 
 - **A version already on the registry is skipped, not overwritten.** npm never
   accepts the same number twice, so bump first. `tm-ui@0.1.0` and
-  `tm-cut-core@0.1.0` both exist on the registry as *older* builds; publishing
-  today's code needs `0.1.1`.
+  `tm-cut-core@0.1.0` both exist on the registry as *older* builds; today's code
+  is `tm-ui@0.1.2` and `tm-cut-core@0.1.1`. `tm-core` has never been published,
+  so its `0.1.1` is the first release.
 - **`pnpm` refuses a package published minutes ago.** Add the exact version to
   `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` before installing it.

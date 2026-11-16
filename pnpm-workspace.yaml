@@ -7,6 +7,8 @@ allowBuilds:
   vue-demi: true
 
 minimumReleaseAgeExclude:
+  - '@tuanmjnh/tm-ui@0.1.2'
+  - '@tuanmjnh/tm-core@0.1.1'
   - '@tuanmjnh/tm-ui@0.1.1'
   - '@tuanmjnh/tm-core@0.1.0'
   - tm-cut-core@0.1.1
