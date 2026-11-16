@@ -20,10 +20,14 @@ from the app's theme.
 | AI surface | `StatusBadge`, `ListFooter`, `ModelSelect` |
 | Page chrome | `Page`, `HeaderActions`, `SettingsPage`, `SectionNav` |
 | Modals | `ConfirmModal`, `FormModal`, `ResponsiveModal`, `ResponsiveSlideover` |
-| List surface | `Table`, `GridList`, `SwipeCard`, `HeTreeMenu`, `EmptyState` |
-| Admin bits | `RowActions`, `ViewModeToggle`, `FilterPopover` |
+| List surface | `Table`, `GridList`, `SwipeCard`, `HeTreeMenu`, `EmptyState`, `RowActions`, `ViewModeToggle`, `FilterPopover` |
 | Decor | `BentoCard`, `BentoGrid`, `AppBackdrop` |
 | Inputs | `PasswordInput` |
+
+`RowActions`, `ViewModeToggle`, `FilterPopover` and `EmptyState` used to live
+under `src/admin/`. They are ordinary list-page parts — every app uses them on
+notifications, resources and document-studio pages — so they sit in `base/` now.
+The barrel was always flat, so this changed no import.
 
 The barrel also exports the helpers the components are built on — `useMobileBar`
 and `mobileActionLayout`, `gridView` / `breakpoints` storage, `modelCheck`,
@@ -216,3 +220,34 @@ Two app notes:
 
 Keep the local component until every call site in the app has moved and the
 suite is green.
+
+### When a wrapper is worth keeping
+
+A wrapper earns its place only if it adds something a call site would otherwise
+repeat. The line is measurable:
+
+| The wrapper… | Keep it? |
+|---|---|
+| supplies `t(...)` for label props | **yes** — otherwise every call site repeats the translation |
+| injects app state (`useAuth`, `useSettingsNav`, `useMobileBar`) | yes — the package owns no auth |
+| sets a prop default the app relies on | yes, while more than one caller benefits |
+| only forwards props and slots | **no** — import the component and use its tag |
+
+The last row is why `AppBackdrop`, `BentoCard`, `BentoGrid`, `HeTreeMenu` and
+`EmptyState` lost their wrappers: they forwarded everything and added nothing.
+Call sites now write the package tag directly, so there is no name mapping to
+maintain:
+
+```vue
+<script setup lang="ts">
+import { AppBackdrop } from '@tuanmjnh/tm-ui'
+</script>
+
+<template>
+  <AppBackdrop grid />
+</template>
+```
+
+A pass-through wrapper is also a trap during a refactor: the tag keeps resolving
+after the package export is renamed, so the break surfaces somewhere else.
+
