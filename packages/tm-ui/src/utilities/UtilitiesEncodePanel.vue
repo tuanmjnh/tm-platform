@@ -1,4 +1,393 @@
+<template>
+  <div class="space-y-4">
+    <!-- 1. Encode / Decode -->
+    <UCard>
+      <template #header>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-arrow-left-right" class="h-5 w-5 text-primary" />
+            <div>
+              <h3 class="text-sm font-semibold text-highlighted">
+                {{ t('utilities.crypto.encodeTitle') }}
+              </h3>
+              <p class="text-xs text-muted">
+                {{ t('utilities.crypto.encodeDesc') }}
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <UButton
+              v-for="op in encodeOps"
+              :key="op.id"
+              :label="t(`utilities.crypto.actions.${op.id}`)"
+              :icon="op.icon"
+              size="xs"
+              :color="encodeOp === op.id ? 'primary' : 'neutral'"
+              :variant="encodeOp === op.id ? 'solid' : 'soft'"
+              @click="encodeOp = op.id"
+            />
+          </div>
+        </div>
+      </template>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <UtilitiesTextPane :t="t"
+          v-model="encodeInput"
+          :label="t('utilities.crypto.input')"
+          :placeholder="t('utilities.crypto.inputPlaceholder')"
+          :rows="6"
+        />
+        <UtilitiesTextPane :t="t"
+          :model-value="encodeOutput"
+          :label="t('utilities.crypto.output')"
+          :placeholder="t('utilities.crypto.outputPlaceholder')"
+          :rows="6"
+          readonly
+          allow-download
+        >
+          <template #footer>
+            <p v-if="encodeError" class="text-xs text-error">
+              {{ encodeError }}
+            </p>
+            <p v-else-if="!encodeInput" class="text-xs text-dimmed">
+              {{ t('utilities.crypto.hintInput') }}
+            </p>
+          </template>
+        </UtilitiesTextPane>
+      </div>
+    </UCard>
+
+    <!-- 2. Hash -->
+    <UCard>
+      <template #header>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-fingerprint" class="h-5 w-5 text-primary" />
+            <div>
+              <h3 class="text-sm font-semibold text-highlighted">
+                {{ t('utilities.crypto.hash.title') }}
+              </h3>
+              <p class="text-xs text-muted">
+                {{ t('utilities.crypto.hash.desc') }}
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <USelect
+              v-model="hashAlgo"
+              :items="hashAlgorithms"
+              size="xs"
+              class="w-36"
+            />
+            <UButton
+              :label="t('utilities.crypto.hash.generate')"
+              icon="i-lucide-hash"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              :loading="hashLoading"
+              :disabled="!hashInput.trim()"
+              @click="runHash"
+            />
+          </div>
+        </div>
+      </template>
+
+      <div class="space-y-3">
+        <UtilitiesTextPane :t="t"
+          v-model="hashInput"
+          :label="t('utilities.crypto.hash.inputLabel')"
+          :placeholder="t('utilities.crypto.hash.inputPlaceholder')"
+          :rows="3"
+        />
+        <div v-if="hashResult" class="space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-muted">{{ hashAlgo }}</span>
+            <UButton
+              icon="i-lucide-copy"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              @click="copyText(hashResult)"
+            />
+          </div>
+          <div class="rounded-lg bg-default/50 p-3 font-mono text-xs break-all">
+            {{ hashResult }}
+          </div>
+        </div>
+        <p v-else class="text-xs text-dimmed">
+          {{ t('utilities.crypto.hash.hint') }}
+        </p>
+      </div>
+    </UCard>
+
+    <!-- 3. JWT -->
+    <UCard>
+      <template #header>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-key-round" class="h-5 w-5 text-primary" />
+            <div>
+              <h3 class="text-sm font-semibold text-highlighted">
+                JWT
+              </h3>
+              <p class="text-xs text-muted">
+                {{ t('utilities.crypto.jwt.desc') }}
+              </p>
+            </div>
+          </div>
+          <UFieldGroup>
+            <UButton
+              :label="t('utilities.crypto.jwt.modeEncode')"
+              icon="i-lucide-lock"
+              size="xs"
+              :color="jwtMode === 'encode' ? 'primary' : 'neutral'"
+              :variant="jwtMode === 'encode' ? 'solid' : 'soft'"
+              @click="jwtMode = 'encode'"
+            />
+            <UButton
+              :label="t('utilities.crypto.jwt.modeDecode')"
+              icon="i-lucide-lock-open"
+              size="xs"
+              :color="jwtMode === 'decode' ? 'primary' : 'neutral'"
+              :variant="jwtMode === 'decode' ? 'solid' : 'soft'"
+              @click="jwtMode = 'decode'"
+            />
+          </UFieldGroup>
+        </div>
+      </template>
+
+      <!-- ENCODE mode -->
+      <div v-if="jwtMode === 'encode'" class="space-y-3">
+        <div class="grid gap-3 lg:grid-cols-2">
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-muted">{{ t('utilities.crypto.jwt.payloadJson') }}</label>
+            <UTextarea
+              v-model="jwtPayloadJson"
+              :placeholder="t('utilities.crypto.jwt.payloadPlaceholder')"
+              :rows="6"
+              class="w-full font-mono text-xs"
+            />
+            <p v-if="jwtPayloadError" class="text-xs text-error">
+              {{ jwtPayloadError }}
+            </p>
+          </div>
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-muted">{{ t('utilities.crypto.jwt.headerJson') }}</label>
+            <UTextarea
+              v-model="jwtHeaderJson"
+              :placeholder="t('utilities.crypto.jwt.headerPlaceholder')"
+              :rows="6"
+              class="w-full font-mono text-xs"
+            />
+            <p v-if="jwtHeaderError" class="text-xs text-error">
+              {{ jwtHeaderError }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-3">
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-muted">Algorithm</label>
+            <USelect
+              v-model="jwtAlgo"
+              :items="['HS256', 'none']"
+              size="sm"
+              class="w-32"
+            />
+          </div>
+          <div v-if="jwtAlgo === 'HS256'" class="flex-1 min-w-48 space-y-1">
+            <label class="text-xs font-medium text-muted">{{ t('utilities.crypto.jwt.secret') }}</label>
+            <UInput
+              v-model="jwtSecret"
+              :placeholder="t('utilities.crypto.jwt.secretPlaceholder')"
+              type="password"
+              size="sm"
+              class="w-full"
+            />
+          </div>
+          <UButton
+            :label="t('utilities.crypto.jwt.encode')"
+            icon="i-lucide-key"
+            color="neutral"
+            variant="soft"
+            :disabled="!jwtPayloadJson.trim() || !!jwtPayloadError || (jwtAlgo === 'HS256' && !jwtSecret)"
+            :loading="jwtEncoding"
+            @click="doEncodeJwt"
+          />
+        </div>
+
+        <div v-if="jwtEncoded" class="space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-muted">Token</span>
+            <UButton
+              icon="i-lucide-copy"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              @click="copyText(jwtEncoded)"
+            />
+          </div>
+          <div class="rounded-lg bg-default/50 p-3 font-mono text-xs break-all">
+            {{ jwtEncoded }}
+          </div>
+        </div>
+        <p v-else class="text-xs text-dimmed">
+          {{ t('utilities.crypto.jwt.encodeHint') }}
+        </p>
+      </div>
+
+      <!-- DECODE mode -->
+      <div v-else class="space-y-3">
+        <UtilitiesTextPane :t="t"
+          v-model="jwtInput"
+          :label="t('utilities.crypto.jwt.inputLabel')"
+          :placeholder="t('utilities.crypto.jwt.inputPlaceholder')"
+          :rows="3"
+        />
+
+        <div class="flex justify-end">
+          <UButton
+            :label="t('utilities.crypto.jwt.decode')"
+            icon="i-lucide-play"
+            size="xs"
+            color="neutral"
+            variant="soft"
+            :disabled="!jwtInput.trim()"
+            @click="doDecodeJwt"
+          />
+        </div>
+
+        <UAlert
+          v-if="jwtResult && !jwtResult.valid"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-circle-alert"
+          :title="t('utilities.crypto.jwt.invalid')"
+        />
+
+        <div v-if="jwtResult?.header" class="rounded-lg border border-default bg-default/30 p-3">
+          <div class="mb-1 flex items-center justify-between">
+            <span class="text-xs font-semibold text-muted">Header</span>
+            <UButton
+              icon="i-lucide-copy"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              @click="copyText(JSON.stringify(jwtResult.header, null, 2))"
+            />
+          </div>
+          <pre class="overflow-auto font-mono text-xs">{{ JSON.stringify(jwtResult.header, null, 2) }}</pre>
+        </div>
+
+        <div v-if="jwtResult?.payload" class="rounded-lg border border-default bg-default/30 p-3">
+          <div class="mb-1 flex items-center justify-between">
+            <span class="text-xs font-semibold text-muted">Payload</span>
+            <UButton
+              icon="i-lucide-copy"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              @click="copyText(JSON.stringify(jwtResult.payload, null, 2))"
+            />
+          </div>
+          <pre class="overflow-auto font-mono text-xs">{{ JSON.stringify(jwtResult.payload, null, 2) }}</pre>
+          <div v-if="expHint" class="mt-2 text-xs text-muted">
+            {{ expHint }}
+          </div>
+        </div>
+
+        <p v-if="!jwtResult && !jwtInput" class="text-xs text-dimmed">
+          {{ t('utilities.crypto.jwt.hint') }}
+        </p>
+      </div>
+    </UCard>
+
+    <!-- 4. Key Generator -->
+    <UCard>
+      <template #header>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-key" class="h-5 w-5 text-primary" />
+            <div>
+              <h3 class="text-sm font-semibold text-highlighted">
+                {{ t('utilities.crypto.keyGen.title') }}
+              </h3>
+              <p class="text-xs text-muted">
+                {{ t('utilities.crypto.keyGen.desc') }}
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <UButton
+              :label="'32 ' + t('utilities.crypto.keyGen.chars')"
+              size="xs"
+              :color="keyLength === 32 ? 'primary' : 'neutral'"
+              :variant="keyLength === 32 ? 'solid' : 'soft'"
+              @click="keyLength = 32"
+            />
+            <UButton
+              :label="'64 ' + t('utilities.crypto.keyGen.chars')"
+              size="xs"
+              :color="keyLength === 64 ? 'primary' : 'neutral'"
+              :variant="keyLength === 64 ? 'solid' : 'soft'"
+              @click="keyLength = 64"
+            />
+            <UButton
+              :label="t('utilities.crypto.keyGen.generate')"
+              icon="i-lucide-refresh-cw"
+              size="xs"
+              color="primary"
+              variant="solid"
+              @click="doGenerateKey"
+            />
+          </div>
+        </div>
+      </template>
+
+      <div class="space-y-3">
+        <div class="flex items-center gap-3">
+          <label class="text-xs font-medium text-muted w-24">{{ t('utilities.crypto.keyGen.length') }}</label>
+          <div class="flex items-center gap-3 flex-1">
+            <USlider
+              v-model="keyLength"
+              :min="16"
+              :max="128"
+              :step="16"
+              class="flex-1"
+            />
+            <span class="w-16 text-right font-mono text-xs font-semibold">{{ keyLength }} {{ t('utilities.crypto.keyGen.chars') }}</span>
+          </div>
+        </div>
+
+        <div v-if="generatedKey" class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-muted">
+              {{ keyLength }}-hex key ({{ keyLength * 4 }} bits / {{ keyLength / 2 }} bytes)
+            </span>
+            <UButton
+              icon="i-lucide-copy"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              @click="copyText(generatedKey)"
+            />
+          </div>
+          <div class="rounded-lg bg-default/50 p-3 font-mono text-xs break-all border border-default select-all">
+            {{ generatedKey }}
+          </div>
+        </div>
+        <p v-else class="text-xs text-dimmed">
+          {{ t('utilities.crypto.keyGen.hint') }}
+        </p>
+      </div>
+    </UCard>
+  </div>
+</template>
+
+
 <script setup lang="ts">
+import UtilitiesTextPane from './UtilitiesTextPane.vue'
 import {
   encodeBase64, decodeBase64, encodeUrl, decodeUrl, escapeHtml, unescapeHtml,
   encodeHex, decodeHex, encodeBinary, decodeBinary, rot13, reverseText,
@@ -219,7 +608,7 @@ onMounted(() => {
 async function copyText(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-    reportCopied(outputText.value)
+    reportCopied(encodeOutput.value)
   } catch (error) {
     reportError(error)
   }

@@ -79,6 +79,9 @@ importers:
       '@he-tree/vue':
         specifier: ^2.10.1
         version: 2.10.5(vue@3.5.44(typescript@5.9.3))
+      '@tuanmjnh/tm-core':
+        specifier: link:../tm-core
+        version: link:../tm-core
       '@vue/compiler-sfc':
         specifier: 3.5.44
         version: 3.5.44
