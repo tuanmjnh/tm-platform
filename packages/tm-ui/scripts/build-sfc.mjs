@@ -181,7 +181,7 @@ async function build() {
   const helperLines = helperPaths.map(p => `export * from './${p}.js'`).join('\n')
   const sharedTypes = existsSync(join(src, 'types'))
     ? readdirSync(join(src, 'types'))
-        .filter(f => f.endsWith('.d.ts') && ['HeaderActions.d.ts', 'GridList.d.ts', 'EmptyState.d.ts'].includes(f))
+        .filter(f => f.endsWith('.d.ts') && ['HeaderActions.d.ts', 'GridList.d.ts', 'EmptyState.d.ts', 'Utilities.d.ts'].includes(f))
         .map(f => `export type * from './types/${f.replace(/\.d\.ts$/, '')}'`)
         .join('\n')
     : ''

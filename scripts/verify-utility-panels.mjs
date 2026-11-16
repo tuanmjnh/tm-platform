@@ -22,6 +22,7 @@ const page = await ctx.newPage()
 const routes = [
   { path: '/utilities/text', name: 'text panel', expect: () => ({ textareas: document.querySelectorAll('textarea').length, buttons: document.querySelectorAll('button').length }) },
   { path: '/utilities/encode', name: 'encode panel', expect: () => ({ textareas: document.querySelectorAll('textarea').length, buttons: document.querySelectorAll('button').length }) },
+  { path: '/utilities/icons', name: 'icons panel', expect: () => ({ buttons: document.querySelectorAll('button').length, gridCells: document.querySelectorAll('button[title]').length }) },
   { path: '/utilities/random', name: 'random panel', expect: () => ({ buttons: document.querySelectorAll('button').length, sliders: document.querySelectorAll('[role=slider]').length }) }
 ]
 
