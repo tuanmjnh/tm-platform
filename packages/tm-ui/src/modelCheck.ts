@@ -26,7 +26,9 @@ export const DEFAULT_LABELS: Record<keyof ModelSelectLabels, string> = {
   rawError: 'Server error detail:',
   genericError: 'Failed to get a response from the AI provider.',
   retry: 'Retry',
-  checkAriaLabel: 'Check connection and quota for this model'
+  checkAriaLabel: 'Check connection and quota for this model',
+  sourceHub: 'HUB',
+  sourceApp: 'APP'
 }
 
 export function interpolate(text: string, values: Record<string, string | number>): string {

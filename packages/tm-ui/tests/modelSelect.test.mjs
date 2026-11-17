@@ -65,7 +65,7 @@ const models = [
   assert.deepEqual(items.map(i => i.label), ['GPT-4o', 'Llama 3'])
   // default icon map applies
   assert.equal(items[0].icon, 'i-simple-icons-openai')
-  assert.equal(items[1].icon, 'i-lucide-hard-drive')
+  assert.equal(items[1].icon, 'i-simple-icons-ollama')
 }
 
 // 2. A selected model outside the search results still appears (no blank trigger)
@@ -123,9 +123,14 @@ const models = [
   assert.equal(providerIconFor('anthropic'), 'i-simple-icons-anthropic')
   assert.equal(providerIconFor('google-vertex'), 'i-simple-icons-google')
   assert.equal(providerIconFor('groq-cloud'), 'i-lucide-zap')
-  assert.equal(providerIconFor('deepseek'), 'i-lucide-sparkles')
-  assert.equal(providerIconFor('ollama'), 'i-lucide-hard-drive')
-  assert.equal(providerIconFor('openrouter'), 'i-lucide-route')
+  assert.equal(providerIconFor('deepseek'), 'i-simple-icons-deepseek')
+  assert.equal(providerIconFor('mistral'), 'i-simple-icons-mistralai')
+  assert.equal(providerIconFor('ollama'), 'i-simple-icons-ollama')
+  assert.equal(providerIconFor('openrouter'), 'i-simple-icons-openrouter')
+  assert.equal(providerIconFor('nvidia'), 'i-simple-icons-nvidia')
+  assert.equal(providerIconFor('amd_radeon'), 'i-simple-icons-amd')
+  assert.equal(providerIconFor('github_models'), 'i-simple-icons-github')
+  assert.equal(providerIconFor('freellmapi'), 'i-lucide-route')
   assert.equal(providerIconFor(''), 'i-lucide-bot')
   assert.equal(providerIconFor('mystery'), 'i-lucide-bot')
 }
@@ -181,6 +186,35 @@ const models = [
 {
   const html = await render({ modelValue: '', models: [], labels: { placeholder: 'Pick' } })
   assert.match(html, /data-placeholder="Pick"/)
+}
+
+// 11. Shadowed rows never reach the picker, even as the selected value
+{
+  const shadowed = [
+    { connectionId: 'app:local', connectionName: '127.0.0.1:11434', provider: 'nvidia', providerName: 'NVIDIA NIM', modelId: 'nemotron', displayName: 'Nemotron', source: 'app' },
+    { connectionId: 'hub-key', connectionName: 'Hub NVIDIA', provider: 'nvidia', modelId: 'nemotron', displayName: 'Nemotron', source: 'hub', shadowed: true }
+  ]
+  const html = await render({ modelValue: 'hub-key:nemotron', models: shadowed })
+  const items = JSON.parse(html.match(/data-items="([^"]*)"/)[1].replace(/&quot;/g, '"'))
+  assert.deepEqual(items.map(i => i.value), ['app:local:nemotron'])
+}
+
+// 12. Duplicate providers get a secondary line; a cross-source provider gets a chip
+{
+  const dupes = [
+    { connectionId: 'app:a', connectionName: '127.0.0.1:11434', provider: 'nvidia', providerName: 'NVIDIA NIM', modelId: 'nemotron', displayName: 'Nemotron', source: 'app' },
+    { connectionId: 'hub-b', connectionName: 'NVIDIA cloud', provider: 'nvidia', providerName: 'NVIDIA NIM', modelId: 'llama-3.1', displayName: 'Llama 3.1', source: 'hub' },
+    { connectionId: 'hub-c', connectionName: 'OpenAI prod', provider: 'openai', modelId: 'gpt-4o', displayName: 'GPT-4o', source: 'hub' }
+  ]
+  const html = await render({ modelValue: '', models: dupes, labels: { sourceHub: 'HUB', sourceApp: 'APP' } })
+  const items = JSON.parse(html.match(/data-items="([^"]*)"/)[1].replace(/&quot;/g, '"'))
+  assert.equal(items[0].description, 'NVIDIA NIM · 127.0.0.1:11434')
+  assert.equal(items[1].description, 'NVIDIA NIM · NVIDIA cloud')
+  assert.equal(items[0].chip.text, 'APP')
+  assert.equal(items[1].chip.text, 'HUB')
+  // A provider with a single connection stays clean: no meta line, no chip
+  assert.equal(items[2].description, undefined)
+  assert.equal(items[2].chip, undefined)
 }
 
 console.log('ModelSelect tests passed')

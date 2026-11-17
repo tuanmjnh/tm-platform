@@ -1,6 +1,7 @@
 export { default as StatusBadge } from './ai/StatusBadge.vue'
 export { default as ListFooter } from './ai/ListFooter.vue'
 export { default as ModelSelect } from './ai/ModelSelect.vue'
+export { default as AIConnectionsEditor } from './ai/AIConnectionsEditor.vue'
 
 export { default as Page } from './base/Page.vue'
 export { default as HeaderActions } from './base/HeaderActions.vue'
@@ -40,3 +41,4 @@ export type { IconSearchPage, IconSearchQuery } from './types/Utilities'
 export type { StatusBadgeProps } from './types/StatusBadge'
 export type { ListFooterProps } from './types/ListFooter'
 export type { ModelSelectProps } from './types/ModelSelect'
+export type { AIConnectionRow, AIProviderOption, AIConnectionsEditorLabels, AIConnectionsEditorProps } from './types/AIConnectionsEditor'

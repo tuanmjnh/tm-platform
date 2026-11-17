@@ -5,7 +5,11 @@ export interface ModelOption {
   modelId: string
   displayName: string
   provider: string
+  providerName?: string
   connectionName?: string
+  source?: 'hub' | 'app'
+  /** An identical provider+model on the other source; the picker hides it. */
+  shadowed?: boolean
   isPrimary?: boolean
 }
 
@@ -42,6 +46,9 @@ export interface ModelSelectLabels {
   genericError?: string
   retry?: string
   checkAriaLabel?: string
+  /** Chip text when the same provider appears on both the Hub and the app. */
+  sourceHub?: string
+  sourceApp?: string
 }
 
 export interface ModelSelectCheckSuccess {

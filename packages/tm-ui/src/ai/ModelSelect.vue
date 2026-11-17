@@ -58,28 +58,58 @@ const modelSelectMenuRef = useTemplateRef<{ viewportRef?: HTMLElement | null }>(
 
 const canCheck = computed(() => props.showCheck && typeof props.checkModel === 'function')
 
+/** A shadowed row duplicates an app-local model; management views still show it. */
+const visibleModels = computed(() => props.models.filter(model => !model.shadowed))
+
+const providerUsage = computed(() => {
+  const usage = new Map<string, { connections: Set<string>, sources: Set<string> }>()
+  for (const model of visibleModels.value) {
+    const entry = usage.get(model.provider) ?? { connections: new Set<string>(), sources: new Set<string>() }
+    usage.set(model.provider, entry)
+    entry.connections.add(model.connectionId)
+    if (model.source) entry.sources.add(model.source)
+  }
+  return usage
+})
+
 const filteredModels = computed(() => {
   const query = searchTerm.value.trim().toLowerCase()
-  if (!query) return props.models
-  return props.models.filter(m =>
+  if (!query) return visibleModels.value
+  return visibleModels.value.filter(m =>
     m.displayName.toLowerCase().includes(query)
     || m.modelId.toLowerCase().includes(query)
     || m.provider.toLowerCase().includes(query)
+    || (m.providerName || '').toLowerCase().includes(query)
+    || (m.connectionName || '').toLowerCase().includes(query)
   )
 })
 
 function toOption(model: ModelOption) {
+  const usage = providerUsage.value.get(model.provider)
+  const meta = (usage?.connections.size ?? 0) > 1
+    ? [model.providerName || model.provider, model.connectionName || model.connectionId].filter(Boolean).join(' · ')
+    : ''
+  const crossSource = (usage?.sources.size ?? 0) > 1
   return {
     label: model.displayName,
     value: `${model.connectionId}:${model.modelId}`,
-    icon: iconFor(model.provider)
+    icon: iconFor(model.provider),
+    description: meta || undefined,
+    chip: crossSource && model.source
+      ? {
+          text: model.source === 'app' ? label('sourceApp') : label('sourceHub'),
+          color: model.source === 'app' ? 'primary' : 'neutral',
+          size: 'sm',
+          standalone: true
+        }
+      : undefined
   }
 }
 
 const modelOptions = computed(() => {
   const options = filteredModels.value.slice(0, displayLimit.value).map(toOption)
   if (props.modelValue && !options.some(option => option.value === props.modelValue)) {
-    const selected = props.models.find(m => `${m.connectionId}:${m.modelId}` === props.modelValue)
+    const selected = visibleModels.value.find(m => `${m.connectionId}:${m.modelId}` === props.modelValue)
     if (selected) options.unshift(toOption(selected))
   }
   return options
