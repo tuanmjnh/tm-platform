@@ -12,12 +12,13 @@ these packages contains secrets, internal endpoints, or app-specific business lo
 | `@tuanmjnh/tm-types` | Shared TypeScript contracts, DTOs, primitive types | Runtime-agnostic |
 | `@tuanmjnh/tm-validators` | Zod schemas, validation/parsing, type inference | Runtime-agnostic |
 | `@tuanmjnh/tm-utils` | Pure utility functions (no browser/Node/Electron imports) | Runtime-agnostic |
-| `@tuanmjnh/tm-ai-client` | Chat, streaming, adapters (OpenAI-compatible + Anthropic), error normalization, model discovery | Browser/server/Electron |
+| `@tuanmjnh/tm-ai-client` | Chat, streaming, adapters (OpenAI-compatible + Anthropic), error normalization, model discovery. App-local AI config drivers — see [`packages/tm-ai-client/README.md`](./packages/tm-ai-client/README.md) for the driver matrix | Browser/server/Electron |
 | `@tuanmjnh/tm-hub-client` | Control Plane SDK (IAM, configs, media, storage, notifications, audit, AI relay) | Browser/server/Electron |
 | `@tuanmjnh/tm-cut-core` | TMCut pure editing engine (zero dependencies) | Node |
 | `@tuanmjnh/tm-mongo` | Fail-fast MongoDB connection pooling, mongoose injected by the app | Node |
+| `@tuanmjnh/tm-ui` | Shared Nuxt UI components, AI connections editor, modals, list primitives | Nuxt UI 4 (Vue 3) |
 
-Planned, only when a real consumer exists: `tm-ui`, `tm-nuxt`.
+Planned, only when a real consumer exists: `tm-nuxt`.
 
 ## Monorepo layout
 
@@ -30,6 +31,7 @@ packages/
   tm-hub-client/   -> @tuanmjnh/tm-hub-client
   tm-cut-core/     -> @tuanmjnh/tm-cut-core
   tm-mongo/        -> @tuanmjnh/tm-mongo
+  tm-ui/           -> @tuanmjnh/tm-ui
 examples/
 docs/            # phase-0 audit, plans and migration notes
 ```
