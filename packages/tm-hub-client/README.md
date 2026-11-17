@@ -1,8 +1,8 @@
-# tm-hub-client
+# @tuanmjnh/tm-hub-client
 
 Unified, isomorphic TypeScript Client SDK for **TM-Hub** (Centralized IAM, Remote Configs, Media Gateway, Push Notifications & Dedicated MongoDB Audit Logs).
 
-[![npm version](https://img.shields.io/npm/v/tm-hub-client.svg)](https://www.npmjs.com/package/tm-hub-client)
+[![npm version](https://img.shields.io/npm/v/%40tuanmjnh%2Ftm-hub-client.svg)](https://www.npmjs.com/package/@tuanmjnh/tm-hub-client)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
@@ -39,13 +39,13 @@ Hard delete endpoints (`apps.delete`, `users.delete`, `roles.delete`) require a 
 
 ```bash
 # Using pnpm
-pnpm add tm-hub-client
+pnpm add @tuanmjnh/tm-hub-client
 
 # Using npm
-npm install tm-hub-client
+npm install @tuanmjnh/tm-hub-client
 
 # Using yarn
-yarn add tm-hub-client
+yarn add @tuanmjnh/tm-hub-client
 ```
 
 ---
@@ -53,7 +53,7 @@ yarn add tm-hub-client
 ## Quick Start
 
 ```typescript
-import { createHubClient } from 'tm-hub-client'
+import { createHubClient } from '@tuanmjnh/tm-hub-client'
 
 const hub = createHubClient({
   baseUrl: 'https://hub.yourdomain.com', // TM-Hub instance URL
@@ -88,7 +88,7 @@ const { data: auditLogs } = await hub.logs.list({ limit: 20 })
 In your Nuxt project, create `app/composables/useHub.ts`:
 
 ```typescript
-import { createHubClient } from 'tm-hub-client'
+import { createHubClient } from '@tuanmjnh/tm-hub-client'
 
 export const useHub = () => {
   const config = useRuntimeConfig()
@@ -259,7 +259,7 @@ hash the device id, read a machine id, or persist any secret — the host owns
 those (Electron Main / browser profile storage).
 
 ```ts
-import { createHubClient, type HubDeviceInfo } from 'tm-hub-client'
+import { createHubClient, type HubDeviceInfo } from '@tuanmjnh/tm-hub-client'
 
 const device: HubDeviceInfo = {
   deviceId: myDeviceId,          // from Electron Main (machine-derived) or browser UUID

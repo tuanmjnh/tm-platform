@@ -5,13 +5,13 @@ and moving AI connections from implicit to explicit modes.
 
 ## 0. Registry install (current state)
 
-All three apps install `@tuanmjnh/tm-core`, `@tuanmjnh/tm-ui` and `tm-cut-core`
+All three apps install `@tuanmjnh/tm-core`, `@tuanmjnh/tm-ui` and `@tuanmjnh/tm-cut-core`
 from npm:
 
 ```json
 "@tuanmjnh/tm-core": "^0.1.2",
 "@tuanmjnh/tm-ui": "^0.1.4",
-"tm-cut-core": "^0.1.1"
+"@tuanmjnh/tm-cut-core": "^0.1.1"
 ```
 
 What is still required with a registry install is `@source`, the generated
@@ -200,20 +200,20 @@ them in the app's own `node_modules` and fails. All three apps declare all three
 today. `packages/tm-ui/tests/peer-guard.test.mjs` fails if a peer is marked
 optional while `dist` imports it statically.
 
-## `tm-cut-core` — the TMCut engine
+## `@tuanmjnh/tm-cut-core` — the TMCut engine
 
 The engine used to live in `tm-studio/packages/core` as `tmcut-core`, resolved
 through a Vite alias pointed at `src/index.mjs`. It now lives here as
-`tm-cut-core` and tm-studio consumes it with a `link:` dependency, the same way
+`@tuanmjnh/tm-cut-core` and tm-studio consumes it with a `link:` dependency, the same way
 it consumes `tm-core` and `tm-ui`.
 
 What moved, and what each host reads:
 
 | Consumer | How it resolves the engine |
 |---|---|
-| Vue app and its specs | the alias `tm-cut-core` → `node_modules/tm-cut-core/src/index.mjs` (nuxt.config + `tsconfig.test.json`) |
-| Electron main | a relative path to `../../../node_modules/tm-cut-core/src/*.mjs` |
-| Unit specs that read engine files | `node_modules/tm-cut-core/<path>` |
+| Vue app and its specs | the alias `@tuanmjnh/tm-cut-core` → `node_modules/@tuanmjnh/tm-cut-core/src/index.mjs` (nuxt.config + `tsconfig.test.json`) |
+| Electron main | a relative path to `../../../node_modules/@tuanmjnh/tm-cut-core/src/*.mjs` |
+| Unit specs that read engine files | `node_modules/@tuanmjnh/tm-cut-core/<path>` |
 
 `src` remains the only artifact either host loads — `dist/` is what `npm publish`
 ships and is never read at runtime, which is ADR-022's rule unchanged. The
@@ -224,12 +224,12 @@ resolves outside the repo still fails.
 Two consequences worth knowing:
 
 - **Electron packaging follows the symlink.** `electron-builder.yml` ships
-  `node_modules/tm-cut-core/src/**/*`; the resolved tree is copied into
+  `node_modules/@tuanmjnh/tm-cut-core/src/**/*`; the resolved tree is copied into
   `app.asar`. Verified on a real `build:electron:dir`: `generationAdapter.mjs`,
   `providerAdapter.mjs` and `index.mjs` are present, 63 src entries in total.
 - **`node --test` will not scan inside `node_modules`.** The core's own 927
   tests therefore run from the package directory:
-  `cd node_modules/tm-cut-core && node --test "test/*.test.mjs"`, which is what
+  `cd node_modules/@tuanmjnh/tm-cut-core && node --test "test/*.test.mjs"`, which is what
   tm-studio's `test:core` script does. A glob passed from the app root silently
   runs zero tests.
 - **`lint:core` was removed.** ESLint 10 refuses any path under `node_modules`
@@ -281,8 +281,8 @@ minimumReleaseAgeExclude:
 | `@tuanmjnh/tm-types` | Contracts only; no runtime code |
 | `@tuanmjnh/tm-validators` | Zod schemas; the app must supply `zod` |
 | `@tuanmjnh/tm-utils` | Pure functions, no browser/Node/Electron imports |
-| `tm-hub-client` | Control-plane SDK; unaffected by the AI work |
-| `tm-cut-core` | Editing engine, zero dependencies. The studio reads `src` through a `link:` dependency; `dist` exists only for `npm publish`. Its 927 tests run from the package directory — see the section above |
+| `@tuanmjnh/tm-hub-client` | Control-plane SDK; unaffected by the AI work |
+| `@tuanmjnh/tm-cut-core` | Editing engine, zero dependencies. The studio reads `src` through a `link:` dependency; `dist` exists only for `npm publish`. Its 927 tests run from the package directory — see the section above |
 | `@tuanmjnh/tm-ui` | `vue` is a peer; `@nuxt/ui` stays the app's own dependency. Ships the base set — `Page`, `HeaderActions`, `SettingsPage`, `SectionNav`, the four modals, `Table`, `GridList`, `SwipeCard`, `HeTreeMenu`, `EmptyState`, `RowActions`, `ViewModeToggle`, `FilterPopover`, `PasswordInput`, the bento/backdrop decor, and the AI trio (`StatusBadge`, `ListFooter`, `ModelSelect`). Every user-visible string is a prop, so the package has no i18n; each app keeps a thin wrapper supplying `t(...)`. Needs all four items from §0 — `fs.allow`, `@source`, the generated primitive plugin, and one Vue instance. `@source` and the registration apply to a registry install too; only `fs.allow` is `link:`-specific |
 
 ## 2. AI connection modes
@@ -383,8 +383,8 @@ Two things bite on a re-publish:
 
 - **A version already on the registry is skipped, not overwritten.** npm never
   accepts the same number twice, so bump first. `tm-ui@0.1.0` and
-  `tm-cut-core@0.1.0` both exist on the registry as *older* builds; today's code
-  is `tm-ui@0.1.2` and `tm-cut-core@0.1.1`. `tm-core` has never been published,
+  `@tuanmjnh/tm-cut-core@0.1.0` both exist on the registry as *older* builds; today's code
+  is `tm-ui@0.1.2` and `@tuanmjnh/tm-cut-core@0.1.1`. `tm-core` has never been published,
   so its `0.1.1` is the first release.
 - **`pnpm` refuses a package published minutes ago.** Add the exact version to
   `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` before installing it.

@@ -10,7 +10,7 @@ Packed all seven packages from their `dist/`, extracted them, and grepped the
 shipped files for credential shapes.
 
 ```bash
-# for each of tm-ai-client tm-types tm-utils tm-validators tm-cut-core tm-hub-client tm-ui
+# for each of @tuanmjnh/tm-ai-client tm-types tm-utils tm-validators @tuanmjnh/tm-cut-core @tuanmjnh/tm-hub-client @tuanmjnh/tm-ui
 npm pack ./dist --pack-destination /tmp/secdist
 ```
 

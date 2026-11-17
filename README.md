@@ -13,8 +13,8 @@ these packages contains secrets, internal endpoints, or app-specific business lo
 | `@tuanmjnh/tm-validators` | Zod schemas, validation/parsing, type inference | Runtime-agnostic |
 | `@tuanmjnh/tm-utils` | Pure utility functions (no browser/Node/Electron imports) | Runtime-agnostic |
 | `@tuanmjnh/tm-ai-client` | Chat, streaming, adapters (OpenAI-compatible + Anthropic), error normalization, model discovery | Browser/server/Electron |
-| `tm-hub-client` | Control Plane SDK (IAM, configs, media, storage, notifications, audit, AI relay) | Browser/server/Electron |
-| `tm-cut-core` | TMCut pure editing engine (zero dependencies) | Node |
+| `@tuanmjnh/tm-hub-client` | Control Plane SDK (IAM, configs, media, storage, notifications, audit, AI relay) | Browser/server/Electron |
+| `@tuanmjnh/tm-cut-core` | TMCut pure editing engine (zero dependencies) | Node |
 
 Planned, only when a real consumer exists: `tm-ui`, `tm-nuxt`.
 
@@ -26,8 +26,8 @@ packages/
   tm-validators/
   tm-utils/
   tm-ai-client/
-  tm-hub-client/
-  tm-cut-core/
+  tm-hub-client/   -> @tuanmjnh/tm-hub-client
+  tm-cut-core/     -> @tuanmjnh/tm-cut-core
 examples/
 docs/            # phase-0 audit, plans and migration notes
 ```
@@ -51,7 +51,7 @@ pnpm --filter @tuanmjnh/tm-types pack:dry
 
 ## Build pipeline
 
-Each package follows the `tm-hub-client` pattern:
+Each package follows the same pattern:
 
 - `tsup` dual output: `dist/index.js` (ESM) + `dist/index.cjs` (CJS) + `dist/index.d.ts`
 - `scripts/prepare-dist.mjs` writes a publish-ready `dist/package.json`
@@ -59,7 +59,7 @@ Each package follows the `tm-hub-client` pattern:
 
 ## Publishing
 
-Packages are public under the `@tuanmjnh` scope (except `tm-cut-core`, also public). All of it goes
+Every package is public under the `@tuanmjnh` scope. All of it goes
 through one script: `scripts/release.mjs`.
 
 ```bash
@@ -76,8 +76,8 @@ pnpm release:publish:ai-client          # @tuanmjnh/tm-ai-client
 pnpm release:publish:types              # @tuanmjnh/tm-types
 pnpm release:publish:utils              # @tuanmjnh/tm-utils
 pnpm release:publish:validators         # @tuanmjnh/tm-validators
-pnpm release:publish:cut-core           # tm-cut-core
-pnpm release:publish:hub-client         # tm-hub-client
+pnpm release:publish:cut-core           # @tuanmjnh/tm-cut-core
+pnpm release:publish:hub-client         # @tuanmjnh/tm-hub-client
 
 pnpm release:publish:ai-client --dry-run   # preview only, nothing is published
 pnpm release:publish:one                   # pick from a numbered list, then publish
@@ -87,7 +87,7 @@ Or pass the package name directly, and/or several at once:
 
 ```bash
 pnpm release:publish tm-ai-client
-pnpm release:publish tm-cut-core tm-utils
+pnpm release:publish @tuanmjnh/tm-cut-core @tuanmjnh/tm-utils
 ```
 
 Or everything not already on the registry:

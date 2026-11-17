@@ -1,5 +1,5 @@
 {
-  "name": "tm-hub-client",
+  "name": "@tuanmjnh/tm-hub-client",
   "version": "1.2.0",
   "description": "Unified TypeScript SDK for TM-Hub (IAM, Configs, Media, Storage Gateway, Notifications, Audit Logs & AI Relay)",
   "type": "module",

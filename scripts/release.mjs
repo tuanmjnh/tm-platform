@@ -389,7 +389,7 @@ ${paint(1, 'tm-platform release')}
   pnpm release:publish                   publish every package not already on npm
   pnpm release:publish --dry-run         preview only, nothing is published
   pnpm release:publish tm-ai-client      publish one package
-  pnpm release:publish tm-cut-core tm-utils
+  pnpm release:publish @tuanmjnh/tm-cut-core @tuanmjnh/tm-utils
 
   pnpm release:publish:ai-client         one alias per package
   pnpm release:publish:types               types · utils · validators
