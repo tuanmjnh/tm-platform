@@ -1,5 +1,6 @@
 import type { AIConfigStore } from '../store'
 import { normalizeStoredConnection, type StoredAIConnection } from '../stored'
+import { storeFailure } from './storeError'
 
 export interface KeyValueStorageLike {
   getItem(key: string): string | null
@@ -16,8 +17,15 @@ export function createLocalStorageAIConfigStore(
   const key = `${options.keyPrefix || DEFAULT_PREFIX}.${ownerId}`
 
   function read(): StoredAIConnection[] {
+    let raw: string | null = null
     try {
-      const parsed = JSON.parse(storage.getItem(key) || '[]')
+      raw = storage.getItem(key)
+    } catch (error) {
+      throw storeFailure('read', error)
+    }
+    // Only the storage call is a failure; a corrupt document still degrades to [].
+    try {
+      const parsed = JSON.parse(raw || '[]')
       return Array.isArray(parsed)
         ? parsed.filter(entry => entry && typeof entry.connectionId === 'string')
         : []
@@ -26,8 +34,12 @@ export function createLocalStorageAIConfigStore(
     }
   }
 
-  function write(records: StoredAIConnection[]): void {
-    storage.setItem(key, JSON.stringify(records))
+  function write(records: StoredAIConnection[], operation: string): void {
+    try {
+      storage.setItem(key, JSON.stringify(records))
+    } catch (error) {
+      throw storeFailure(operation, error)
+    }
   }
 
   return {
@@ -46,11 +58,11 @@ export function createLocalStorageAIConfigStore(
       }
       if (index >= 0) records[index] = next
       else records.push(next)
-      write(records)
+      write(records, 'upsert')
       return next
     },
     async removeConnection(connectionId) {
-      write(read().filter(entry => entry.connectionId !== connectionId))
+      write(read().filter(entry => entry.connectionId !== connectionId), 'delete')
     },
     async replaceModels(connectionId, models) {
       const records = read()
@@ -58,7 +70,7 @@ export function createLocalStorageAIConfigStore(
       if (index < 0) return
       const record = normalizeStoredConnection({ ...records[index]!, models }, ownerId)
       records[index] = { ...record, updatedAt: new Date().toISOString() }
-      write(records)
+      write(records, 'replace models')
     }
   }
 }

@@ -1,5 +1,6 @@
 import type { AIConfigStore } from '../store'
 import { normalizeStoredConnection, type StoredAIConnection, type StoredAIModel } from '../stored'
+import { guardStore, storeFailure } from './storeError'
 
 export interface SupabaseFilterLike extends PromiseLike<{ data: unknown[] | null, error: unknown }> {
   eq(column: string, value: unknown): SupabaseFilterLike
@@ -86,23 +87,24 @@ export function createSupabaseAIConfigStore(
   const fromRow = options.fromRow || defaultFromRow
 
   function fail(error: unknown, operation: string): never {
-    const message = error && typeof error === 'object' && 'message' in error
-      ? String((error as { message: unknown }).message)
-      : String(error)
-    throw new Error(`AI config store ${operation} failed: ${message}`)
+    throw storeFailure(operation, error)
   }
 
   async function findOne(connectionId: string): Promise<StoredAIConnection | null> {
-    const { data, error } = await client.from(table).select('*').eq(scope, ownerId).eq('connection_id', connectionId).maybeSingle()
-    if (error) fail(error, 'read')
-    return data ? fromRow(data as Record<string, unknown>) : null
+    return guardStore('read', async () => {
+      const { data, error } = await client.from(table).select('*').eq(scope, ownerId).eq('connection_id', connectionId).maybeSingle()
+      if (error) fail(error, 'read')
+      return data ? fromRow(data as Record<string, unknown>) : null
+    })
   }
 
   return {
     async listConnections() {
-      const { data, error } = await client.from(table).select('*').eq(scope, ownerId).order('connection_id')
-      if (error) fail(error, 'list')
-      return (data || []).map(row => fromRow(row as Record<string, unknown>))
+      return guardStore('list', async () => {
+        const { data, error } = await client.from(table).select('*').eq(scope, ownerId).order('connection_id')
+        if (error) fail(error, 'list')
+        return (data || []).map(row => fromRow(row as Record<string, unknown>))
+      })
     },
     async upsertConnection(input) {
       const record = normalizeStoredConnection(input, ownerId)
@@ -113,25 +115,31 @@ export function createSupabaseAIConfigStore(
         createdAt: existing?.createdAt || now,
         updatedAt: now
       }
-      const { error } = await client.from(table).upsert(toRow(stored), {
-        onConflict: `${scope},connection_id`
+      return guardStore('upsert', async () => {
+        const { error } = await client.from(table).upsert(toRow(stored), {
+          onConflict: `${scope},connection_id`
+        })
+        if (error) fail(error, 'upsert')
+        return stored
       })
-      if (error) fail(error, 'upsert')
-      return stored
     },
     async removeConnection(connectionId) {
-      const { error } = await client.from(table).delete().eq(scope, ownerId).eq('connection_id', connectionId)
-      if (error) fail(error, 'delete')
+      await guardStore('delete', async () => {
+        const { error } = await client.from(table).delete().eq(scope, ownerId).eq('connection_id', connectionId)
+        if (error) fail(error, 'delete')
+      })
     },
     async replaceModels(connectionId, models) {
       const existing = await findOne(connectionId)
       if (!existing) return
       const record = normalizeStoredConnection({ ...existing, models }, ownerId)
-      const { error } = await client.from(table).update({
-        models: record.models,
-        updated_at: new Date().toISOString()
-      }).eq(scope, ownerId).eq('connection_id', connectionId)
-      if (error) fail(error, 'replace models')
+      await guardStore('replace models', async () => {
+        const { error } = await client.from(table).update({
+          models: record.models,
+          updated_at: new Date().toISOString()
+        }).eq(scope, ownerId).eq('connection_id', connectionId)
+        if (error) fail(error, 'replace models')
+      })
     }
   }
 }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  AIClientError,
   decodeMasterKey,
   generateMasterKey,
   normalizeStoredConnection,
@@ -8,6 +9,13 @@ import {
   sealSecret,
   storedToAppConnection
 } from '../dist/index.js'
+
+function assertStoreFailure(error, fragment) {
+  assert.ok(error instanceof AIClientError, `expected AIClientError, got ${error?.constructor?.name}`)
+  assert.equal(error.code, 'ai.store-failed')
+  assert.match(error.message, fragment)
+  return true
+}
 
 test('sealSecret/openSecret round-trip with a base64 master key', async () => {
   const master = generateMasterKey()
@@ -151,6 +159,50 @@ test('mongo driver keeps createdAt on upsert and bumps updatedAt', async () => {
   assert.ok(db.docs[0].updatedAt >= first)
 })
 
+function failingMongo(message, overrides = {}) {
+  return {
+    collection() {
+      return {
+        async createIndex() { return 'ownerId_1_connectionId_1' },
+        find() { return { async toArray() { return [] } } },
+        async findOne() { return null },
+        async updateOne() { throw new Error(message) },
+        async deleteOne() { throw new Error(message) },
+        ...overrides
+      }
+    }
+  }
+}
+
+test('mongo driver surfaces collection failures as ai.store-failed', async () => {
+  const indexFailing = createMongoAIConfigStore(failingMongo('unused', {
+    async createIndex() { throw new Error('mongo index denied') }
+  }), 'user-1')
+  await assert.rejects(() => indexFailing.listConnections(), error => assertStoreFailure(error, /mongo index denied/))
+
+  const readFailing = createMongoAIConfigStore(failingMongo('mongo write concern failed', {
+    find() { return { toArray() { return Promise.reject(new Error('mongo cursor lost')) } } }
+  }), 'user-1')
+  await assert.rejects(() => readFailing.listConnections(), error => assertStoreFailure(error, /mongo cursor lost/))
+
+  const writeFailing = createMongoAIConfigStore(failingMongo('mongo write concern failed'), 'user-1')
+  await assert.rejects(
+    () => writeFailing.upsertConnection({ connectionId: 'lab', providerKey: 'openai', baseUrl: 'https://api.openai.com/v1', apiKeyCipher: '' }),
+    error => assertStoreFailure(error, /mongo write concern failed/)
+  )
+  await assert.rejects(() => writeFailing.removeConnection('lab'), error => assertStoreFailure(error, /mongo write concern failed/))
+
+  const validating = createMongoAIConfigStore(failingMongo('mongo delete failed'), 'user-1')
+  await assert.rejects(
+    () => validating.upsertConnection({ connectionId: 'bad id!', providerKey: 'openai', baseUrl: '', apiKeyCipher: '' }),
+    error => {
+      assert.equal(error.code, 'ai.bad-shape')
+      assert.match(error.message, /connectionId/)
+      return true
+    }
+  )
+})
+
 import { createLocalStorageAIConfigStore } from '../dist/index.js'
 
 function memoryStorage() {
@@ -192,6 +244,22 @@ test('localStorage driver tolerates a corrupt document', async () => {
   storage.setItem('tm.ai.config.v1.acct-1', '{not json')
   const store = createLocalStorageAIConfigStore(storage, 'acct-1')
   assert.deepEqual(await store.listConnections(), [])
+})
+
+test('localStorage driver surfaces storage failures as ai.store-failed', async () => {
+  const record = { connectionId: 'lab', providerKey: 'ollama', baseUrl: 'http://127.0.0.1:11434/v1', apiKeyCipher: '' }
+
+  const writeFailing = createLocalStorageAIConfigStore({
+    getItem() { return null },
+    setItem() { throw new Error('QuotaExceededError: storage full') }
+  }, 'acct-1')
+  await assert.rejects(() => writeFailing.upsertConnection(record), error => assertStoreFailure(error, /storage full/))
+
+  const readFailing = createLocalStorageAIConfigStore({
+    getItem() { throw new Error('SecurityError: storage blocked') },
+    setItem() {}
+  }, 'acct-1')
+  await assert.rejects(() => readFailing.listConnections(), error => assertStoreFailure(error, /storage blocked/))
 })
 
 import { createSupabaseAIConfigStore } from '../dist/index.js'
@@ -262,4 +330,35 @@ test('supabase driver upserts, scopes and replaces models on one table', async (
 
   await store.removeConnection('lab')
   assert.equal((await store.listConnections()).length, 0)
+})
+
+test('supabase driver surfaces client failures as ai.store-failed', async () => {
+  const thrown = createSupabaseAIConfigStore({
+    from() { throw new Error('supabase pool exhausted') }
+  }, 'user-1')
+  await assert.rejects(() => thrown.listConnections(), error => assertStoreFailure(error, /supabase pool exhausted/))
+  await assert.rejects(
+    () => thrown.upsertConnection({ connectionId: 'lab', providerKey: 'openai', baseUrl: '', apiKeyCipher: '' }),
+    error => assertStoreFailure(error, /supabase pool exhausted/)
+  )
+
+  const returned = createSupabaseAIConfigStore({
+    from() {
+      const chain = {
+        select() { return chain },
+        eq() { return chain },
+        order() { return Promise.resolve({ data: null, error: { message: 'relation ai_connections does not exist' } }) },
+        maybeSingle() { return Promise.resolve({ data: null, error: null }) },
+        upsert() { return Promise.resolve({ error: { message: 'duplicate key value' } }) },
+        delete() { return chain },
+        update() { return chain }
+      }
+      return chain
+    }
+  }, 'user-1')
+  await assert.rejects(() => returned.listConnections(), error => assertStoreFailure(error, /relation ai_connections does not exist/))
+  await assert.rejects(
+    () => returned.upsertConnection({ connectionId: 'lab', providerKey: 'openai', baseUrl: '', apiKeyCipher: '' }),
+    error => assertStoreFailure(error, /duplicate key value/)
+  )
 })
