@@ -47,6 +47,8 @@ function silentManager(factory, cooldownMs) {
   })
 }
 
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
+
 test('empty or blank uri resolves null without connecting', async () => {
   const factory = factoryOf(fakeConnection())
   const manager = silentManager(factory)
@@ -94,9 +96,21 @@ test('changed uri closes the old pool and reconnects', async () => {
   const factory = factoryOf(oldConn, newConn)
   const manager = silentManager(factory)
 
-  assert.equal(await manager.get('mongodb://a', 'db', 'switch'), oldConn)
-  assert.equal(await manager.get('mongodb://b', 'db', 'switch'), newConn)
+  assert.equal(await manager.get('mongodb://a', 'db', 'switch-uri'), oldConn)
+  assert.equal(await manager.get('mongodb://b', 'db', 'switch-uri'), newConn)
   assert.equal(oldConn.closeCount, 1)
+  assert.equal(factory.calls.length, 2)
+})
+
+test('changed database name closes the old pool and reconnects', async () => {
+  const firstConn = fakeConnection()
+  const secondConn = fakeConnection()
+  const factory = factoryOf(firstConn, secondConn)
+  const manager = silentManager(factory)
+
+  assert.equal(await manager.get('mongodb://x', 'db-one', 'switch-db'), firstConn)
+  assert.equal(await manager.get('mongodb://x', 'db-two', 'switch-db'), secondConn)
+  assert.equal(firstConn.closeCount, 1)
   assert.equal(factory.calls.length, 2)
 })
 
@@ -105,7 +119,7 @@ test('failed connect resolves null, then a cooldown gate delays the retry', asyn
   let attempt = 0
   const calls = []
   const manager = createMongoConnectionManager({
-    cooldownMs: 25,
+    cooldownMs: 30,
     log: () => {},
     createConnection(uri, options) {
       calls.push({ uri, options })
@@ -118,9 +132,20 @@ test('failed connect resolves null, then a cooldown gate delays the retry', asyn
   assert.equal(await manager.get('mongodb://x', 'db', 'cooldown'), null)
   assert.equal(calls.length, 1)
 
-  await new Promise(resolve => setTimeout(resolve, 40))
+  await wait(50)
   assert.equal(await manager.get('mongodb://x', 'db', 'cooldown'), good)
   assert.equal(calls.length, 2)
+})
+
+test('a synchronous factory throw resolves null instead of rejecting', async () => {
+  const manager = createMongoConnectionManager({
+    log: () => {},
+    createConnection() {
+      throw new Error('bad uri')
+    }
+  })
+
+  assert.equal(await manager.get('mongodb://x', 'db', 'sync-throw'), null)
 })
 
 test('a disconnected pool is replaced on the next call', async () => {
@@ -132,6 +157,50 @@ test('a disconnected pool is replaced on the next call', async () => {
   assert.equal(await manager.get('mongodb://x', 'db', 'disconnect'), firstConn)
   firstConn.emit('disconnected')
   assert.equal(await manager.get('mongodb://x', 'db', 'disconnect'), secondConn)
+  assert.equal(factory.calls.length, 2)
+})
+
+test('a drop is retried only after the cooldown window', async () => {
+  const firstConn = fakeConnection()
+  const secondConn = fakeConnection()
+  const factory = factoryOf(firstConn, secondConn)
+  const manager = silentManager(factory, 30)
+
+  assert.equal(await manager.get('mongodb://x', 'db', 'drop-cooldown'), firstConn)
+  firstConn.emit('disconnected')
+  assert.equal(await manager.get('mongodb://x', 'db', 'drop-cooldown'), null)
+  assert.equal(factory.calls.length, 1)
+
+  await wait(50)
+  assert.equal(await manager.get('mongodb://x', 'db', 'drop-cooldown'), secondConn)
+  assert.equal(factory.calls.length, 2)
+})
+
+test('an error event on the live pool clears the cache', async () => {
+  const firstConn = fakeConnection()
+  const secondConn = fakeConnection()
+  const factory = factoryOf(firstConn, secondConn)
+  const manager = silentManager(factory, 0)
+
+  assert.equal(await manager.get('mongodb://x', 'db', 'error-event'), firstConn)
+  firstConn.emit('error', new Error('socket hang up'))
+  assert.equal(await manager.get('mongodb://x', 'db', 'error-event'), secondConn)
+  assert.equal(factory.calls.length, 2)
+})
+
+test('a late event from a replaced pool does not evict the current one', async () => {
+  const oldConn = fakeConnection()
+  const newConn = fakeConnection()
+  const factory = factoryOf(oldConn, newConn)
+  const manager = silentManager(factory)
+
+  assert.equal(await manager.get('mongodb://a', 'db', 'stale-event'), oldConn)
+  assert.equal(await manager.get('mongodb://b', 'db', 'stale-event'), newConn)
+
+  oldConn.emit('disconnected')
+  oldConn.emit('error', new Error('late'))
+
+  assert.equal(await manager.get('mongodb://b', 'db', 'stale-event'), newConn)
   assert.equal(factory.calls.length, 2)
 })
 
@@ -150,4 +219,16 @@ test('close targets one pool by name or every pool without one', async () => {
 
   await manager.close()
   assert.equal(beta.closeCount, 1)
+})
+
+test('a closed pool reconnects instead of returning the dead one', async () => {
+  const firstConn = fakeConnection()
+  const secondConn = fakeConnection()
+  const factory = factoryOf(firstConn, secondConn)
+  const manager = silentManager(factory)
+
+  assert.equal(await manager.get('mongodb://x', 'db', 'reopen'), firstConn)
+  await manager.close()
+  assert.equal(await manager.get('mongodb://x', 'db', 'reopen'), secondConn)
+  assert.equal(factory.calls.length, 2)
 })

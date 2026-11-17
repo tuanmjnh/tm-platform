@@ -31,19 +31,19 @@ export interface MongoConnectionLike {
   on(event: string, listener: (...args: any[]) => void): unknown
 }
 
-export type MongoConnectionFactory = (
+export type MongoConnectionFactory<C extends MongoConnectionLike> = (
   uri: string,
   options: MongoConnectOptions
-) => MongoConnectionLike
+) => C
 
-export interface MongoConnectionManagerOptions {
-  createConnection: MongoConnectionFactory
+export interface MongoConnectionManagerOptions<C extends MongoConnectionLike> {
+  createConnection: MongoConnectionFactory<C>
   /** Cooldown after a failed attempt before another connect is tried. Default: 30s. */
   cooldownMs?: number
   log?: (level: 'info' | 'warn', message: string) => void
 }
 
-export interface MongoConnectionManager {
+export interface MongoConnectionManager<C extends MongoConnectionLike = MongoConnectionLike> {
   /**
    * Get the shared connection for `name`.
    * Resolves `null` when the URI is empty or Mongo is unreachable (fail-soft).
@@ -53,7 +53,7 @@ export interface MongoConnectionManager {
     dbName: string,
     name?: string,
     options?: MongoConnectionOptions
-  ): Promise<MongoConnectionLike | null>
+  ): Promise<C | null>
   /** Close one pool by name, or every pool when `name` is omitted. */
   close(name?: string): Promise<void>
 }
@@ -64,6 +64,8 @@ interface MongoEntry {
   db: string | null
   promise: Promise<MongoConnectionLike | null> | null
   lastAttempt: number
+  /** Bumped on replace/close so an in-flight attempt cannot install a stale pool. */
+  generation: number
 }
 
 interface GlobalMongoRegistry {
@@ -83,9 +85,9 @@ function defaultLog(level: 'info' | 'warn', message: string): void {
   else console.log(message)
 }
 
-export function createMongoConnectionManager(
-  managerOptions: MongoConnectionManagerOptions
-): MongoConnectionManager {
+export function createMongoConnectionManager<C extends MongoConnectionLike = MongoConnectionLike>(
+  managerOptions: MongoConnectionManagerOptions<C>
+): MongoConnectionManager<C> {
   const createConnection = managerOptions.createConnection
   const cooldownMs = managerOptions.cooldownMs ?? DEFAULT_COOLDOWN_MS
   const log = managerOptions.log ?? defaultLog
@@ -95,18 +97,19 @@ export function createMongoConnectionManager(
     dbName: string,
     name = 'default',
     options: MongoConnectionOptions = {}
-  ): Promise<MongoConnectionLike | null> {
+  ): Promise<C | null> {
     const targetUri = (uri || '').trim()
     if (!targetUri) return null
 
     const entries = registry()
     if (!entries[name]) {
-      entries[name] = { conn: null, uri: targetUri, db: dbName, promise: null, lastAttempt: 0 }
+      entries[name] = { conn: null, uri: targetUri, db: dbName, promise: null, lastAttempt: 0, generation: 0 }
     }
 
     const entry = entries[name]
 
     if (entry.uri !== targetUri || entry.db !== dbName) {
+      entry.generation += 1
       if (entry.conn) await entry.conn.close().catch(() => {})
       entry.conn = null
       entry.promise = null
@@ -115,14 +118,16 @@ export function createMongoConnectionManager(
       entry.db = dbName
     }
 
-    if (entry.conn && entry.conn.readyState === 1) return entry.conn
-    if (entry.promise) return entry.promise
+    if (entry.conn && entry.conn.readyState === 1) return entry.conn as C
+    if (entry.promise) return entry.promise as Promise<C | null>
     if (entry.lastAttempt && Date.now() - entry.lastAttempt < cooldownMs) return null
     entry.lastAttempt = Date.now()
 
-    entry.promise = (async (): Promise<MongoConnectionLike | null> => {
+    const generation = entry.generation
+    const attempt = (async (): Promise<C | null> => {
+      let conn: C | null = null
       try {
-        const conn = createConnection(targetUri, {
+        conn = createConnection(targetUri, {
           dbName,
           bufferCommands: false,
           maxPoolSize: options.maxPoolSize ?? 2,
@@ -136,12 +141,17 @@ export function createMongoConnectionManager(
 
         await conn.asPromise()
 
+        if (entry.generation !== generation) {
+          await conn.close().catch(() => {})
+          return null
+        }
+
         conn.on('error', (err?: Error) => {
           log('warn', `[Mongo:${name}] connection error: ${err?.message ?? 'unknown'}`)
-          entry.conn = null
+          if (entry.conn === conn) entry.conn = null
         })
         conn.on('disconnected', () => {
-          entry.conn = null
+          if (entry.conn === conn) entry.conn = null
         })
 
         entry.conn = conn
@@ -149,14 +159,15 @@ export function createMongoConnectionManager(
         return conn
       } catch (error) {
         log('warn', `[Mongo:${name}] connect failed: ${(error as Error)?.message ?? String(error)}`)
-        entry.conn = null
+        if (entry.conn === conn) entry.conn = null
         return null
       } finally {
-        entry.promise = null
+        if (entry.generation === generation) entry.promise = null
       }
     })()
 
-    return entry.promise
+    entry.promise = attempt
+    return attempt
   }
 
   async function close(name?: string): Promise<void> {
@@ -165,6 +176,7 @@ export function createMongoConnectionManager(
     for (const key of names) {
       const entry = entries[key]
       if (!entry) continue
+      entry.generation += 1
       try {
         if (entry.conn && entry.conn.readyState !== 0) {
           await entry.conn.close()

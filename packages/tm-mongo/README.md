@@ -7,17 +7,17 @@ mongoose copy while the pool behaviour stays identical everywhere.
 ## Usage
 
 ```ts
-import mongoose from 'mongoose'
+import mongoose, { type Connection } from 'mongoose'
 import { createMongoConnectionManager } from '@tuanmjnh/tm-mongo'
 
-const mongo = createMongoConnectionManager({
+const mongo = createMongoConnectionManager<Connection>({
   createConnection: (uri, options) => mongoose.createConnection(uri, options)
 })
 
 const conn = await mongo.get(process.env.MONGODB_URI, 'tm-studio', 'tm-studio', {
   maxPoolSize: 5
 })
-if (!conn) return null // not configured or unreachable — fail soft
+if (!conn || !conn.db) return null // not configured or unreachable — fail soft
 
 // conn.db is the native Db (usable with structural stores, e.g. createMongoAIConfigStore)
 // conn.getClient() returns the underlying MongoClient
@@ -34,3 +34,8 @@ await mongo.close() // shutdown: close every pool
 - Changing the URI or database name closes the old pool and reconnects.
 - `error` / `disconnected` events clear the cache so the next call reconnects (still subject to the cooldown window).
 - An empty or blank URI resolves `null` instead of throwing.
+
+## Notes
+
+- Pools live in a global registry keyed by name, while `createConnection`, `cooldownMs` and `log` are per manager instance: two managers that use the same name share whichever pool was created first.
+- The registry key is `__tmMongoRegistry`, separate from the legacy `__mongoRegistry` in tm-hub's old helper, so a transitional wrapper and this package can coexist (each with its own pool per name).
