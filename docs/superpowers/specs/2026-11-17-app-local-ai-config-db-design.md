@@ -48,6 +48,36 @@ usable in pickers (one-way `hub → app`).
 - No media (TTS/image/video) provider work.
 - localStorage driver is not used by tm-tools or tm-studio.
 
+## Deferred drivers and shared DB packages (decided 2026-11-17)
+
+1. **No universal multi-DB package.** Supabase, MongoDB and localStorage drivers
+   do not move into one shared storage package. `AIConfigStore` is already the
+   cross-engine abstraction: callers pick one driver and never branch on the
+   backend. A combined "supports everything" package would have to carry (or
+   peer-depend on) every backend and would duplicate that interface.
+2. **`@tuanmjnh/tm-mongo` stays Mongo-only.** The package is connection pooling
+   with an injected `createConnection` (zero runtime deps), extracted from
+   tm-hub's mongoose helper. It is reused by tm-hub, tm-tools and tm-studio as
+   the single Mongo connection manager, including the `conn.db` handle that
+   `createMongoAIConfigStore` consumes. Supabase and localStorage have no
+   pooling problem to solve; adding them here would broaden the package without
+   a consumer.
+3. **IndexedDB driver: deferred.** localStorage covers the personal/browser
+   clients today (tm-social-hub extension). IndexedDB adds async ergonomics,
+   larger quota and structured storage, but also schema versioning and
+   migration code no current consumer needs. Revisit only when one of these is
+   true:
+   - a client needs more than the localStorage quota for connection/model rows;
+   - a client needs indexed queries over the model catalogue instead of one
+     document per owner;
+   - `KeyValueStorageLike` (the localStorage driver's injected interface) proves
+     insufficient because a consumer needs transactions.
+   When that happens the work is a fourth driver behind `AIConfigStore` in
+   tm-ai-client, not a change to the interface.
+4. **`@tuanmjnh/tm-kv` (a generic key-value package) is deferred** until a
+   second consumer of the same KV shape exists. With one consumer it would be a
+   wrapper around `KeyValueStorageLike` with no reuse benefit.
+
 ## Architecture
 
 ### Shared package: `@tuanmjnh/tm-ai-client` 0.4.0
@@ -133,6 +163,10 @@ Normalized record:
   env blob becomes a first-boot import source, not an editor target.
 - If Mongo is unreachable, reads fall back to the env blob and writes fail
   with a clear error.
+- Connections go through `@tuanmjnh/tm-mongo` instead of the ad-hoc module-level
+  cache in `server/modules/database/shared.ts`; `getSharedConnection()` becomes a
+  thin adapter returning `{ client: conn.getClient(), db: conn.db }`, so the
+  driver receives the native `Db`.
 
 ### tm-studio (MongoDB, desktop + web)
 
@@ -146,6 +180,8 @@ Normalized record:
   keeps the hub relay path for hub-owned connections.
 - The earlier sqlite plan for AI config is dropped; sqlite keeps the existing
   YouTube/history data only.
+- Mongo connections use `@tuanmjnh/tm-mongo` (mongoose `createConnection`
+  injected) and the config store receives `conn.db` — no `MongoClient` cast.
 
 ### tm-hub (Supabase)
 
@@ -155,6 +191,9 @@ Normalized record:
 - No schema migration; the adapter maps onto the existing `connections` /
   `ai_models` columns.
 - Hub rows keep their current semantics (app/hub/device ownership).
+- `server/utils/mongo.ts` becomes a thin wrapper over `@tuanmjnh/tm-mongo`
+  keeping its exported signatures; the global registry key moves from
+  `__mongoRegistry` to `__tmMongoRegistry`.
 
 ## Catalogue and picker behaviour
 
