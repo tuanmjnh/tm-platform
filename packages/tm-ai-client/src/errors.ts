@@ -9,6 +9,9 @@ export type AIClientErrorCode =
   | 'ai.bad-shape'
   | 'ai.aborted'
   | 'ai.local-mode-blocked'
+  | 'ai.bad-master-key'
+  | 'ai.no-crypto'
+  | 'ai.store-failed'
 
 export class AIClientError extends Error {
   readonly code: AIClientErrorCode
