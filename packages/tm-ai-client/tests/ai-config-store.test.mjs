@@ -193,3 +193,73 @@ test('localStorage driver tolerates a corrupt document', async () => {
   const store = createLocalStorageAIConfigStore(storage, 'acct-1')
   assert.deepEqual(await store.listConnections(), [])
 })
+
+import { createSupabaseAIConfigStore } from '../dist/index.js'
+
+function fakeSupabase() {
+  const rows = []
+  const calls = []
+  function table(name) {
+    const filter = {}
+    const chain = {
+      select() { return chain },
+      eq(column, value) { filter[column] = value; return chain },
+      order() { return Promise.resolve({ data: rows.filter(row => Object.entries(filter).every(([k, v]) => row[k] === v)), error: null }) },
+      maybeSingle() {
+        return Promise.resolve({ data: rows.find(row => Object.entries(filter).every(([k, v]) => row[k] === v)) ?? null, error: null })
+      },
+      then(resolve, reject) {
+        const result = { data: null, error: null }
+        if (chain._kind === 'delete') {
+          for (let i = rows.length - 1; i >= 0; i--) {
+            if (Object.entries(filter).every(([k, v]) => rows[i][k] === v)) rows.splice(i, 1)
+          }
+        }
+        if (chain._kind === 'update') {
+          for (const row of rows) {
+            if (Object.entries(filter).every(([k, v]) => row[k] === v)) Object.assign(row, chain._payload)
+          }
+        }
+        return Promise.resolve(result).then(resolve, reject)
+      },
+      delete() { chain._kind = 'delete'; return chain },
+      update(payload) { chain._kind = 'update'; chain._payload = payload; return chain },
+      async upsert(row, opts) {
+        calls.push(['upsert', name, row, opts])
+        const index = rows.findIndex(existing => existing.owner_id === row.owner_id && existing.connection_id === row.connection_id)
+        if (index >= 0) rows[index] = { ...rows[index], ...row }
+        else rows.push({ ...row })
+        return { error: null }
+      }
+    }
+    return chain
+  }
+  return { rows, calls, from: table }
+}
+
+test('supabase driver upserts, scopes and replaces models on one table', async () => {
+  const client = fakeSupabase()
+  const store = createSupabaseAIConfigStore(client, 'user-1')
+  await store.upsertConnection({
+    connectionId: 'lab',
+    providerKey: 'nvidia',
+    baseUrl: 'https://integrate.api.nvidia.com/v1',
+    apiKeyCipher: 'v1.a.b',
+    models: [{ modelId: 'm1', enabled: true, isPrimary: true }]
+  })
+  const upsertCall = client.calls.find(call => call[0] === 'upsert')
+  assert.equal(upsertCall[1], 'ai_connections')
+  assert.equal(upsertCall[3].onConflict, 'owner_id,connection_id')
+  assert.equal(upsertCall[2].api_key_cipher, 'v1.a.b')
+
+  const list = await store.listConnections()
+  assert.equal(list.length, 1)
+  assert.equal(list[0].ownerId, 'user-1')
+  assert.equal(list[0].models[0].modelId, 'm1')
+
+  await store.replaceModels('lab', [{ modelId: 'm2', enabled: true }])
+  assert.equal((await store.listConnections())[0].models[0].modelId, 'm2')
+
+  await store.removeConnection('lab')
+  assert.equal((await store.listConnections()).length, 0)
+})
