@@ -1,6 +1,6 @@
 {
   "name": "@tuanmjnh/tm-ai-client",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Provider-agnostic AI client and provider/model catalogue shared by TM apps",
   "type": "module",
   "main": "./dist/index.cjs",
