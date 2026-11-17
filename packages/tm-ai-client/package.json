@@ -1,7 +1,7 @@
 {
   "name": "@tuanmjnh/tm-ai-client",
-  "version": "0.2.1",
-  "description": "Provider-agnostic AI client: OpenAI-compatible chat, streaming, adapters and error normalization",
+  "version": "0.3.0",
+  "description": "Provider-agnostic AI client and provider/model catalogue shared by TM apps",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
