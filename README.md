@@ -15,6 +15,7 @@ these packages contains secrets, internal endpoints, or app-specific business lo
 | `@tuanmjnh/tm-ai-client` | Chat, streaming, adapters (OpenAI-compatible + Anthropic), error normalization, model discovery | Browser/server/Electron |
 | `@tuanmjnh/tm-hub-client` | Control Plane SDK (IAM, configs, media, storage, notifications, audit, AI relay) | Browser/server/Electron |
 | `@tuanmjnh/tm-cut-core` | TMCut pure editing engine (zero dependencies) | Node |
+| `@tuanmjnh/tm-mongo` | Fail-fast MongoDB connection pooling, mongoose injected by the app | Node |
 
 Planned, only when a real consumer exists: `tm-ui`, `tm-nuxt`.
 
@@ -28,6 +29,7 @@ packages/
   tm-ai-client/
   tm-hub-client/   -> @tuanmjnh/tm-hub-client
   tm-cut-core/     -> @tuanmjnh/tm-cut-core
+  tm-mongo/        -> @tuanmjnh/tm-mongo
 examples/
 docs/            # phase-0 audit, plans and migration notes
 ```
