@@ -150,3 +150,46 @@ test('mongo driver keeps createdAt on upsert and bumps updatedAt', async () => {
   assert.equal(db.docs[0].apiKeyCipher, 'v1.x.y')
   assert.ok(db.docs[0].updatedAt >= first)
 })
+
+import { createLocalStorageAIConfigStore } from '../dist/index.js'
+
+function memoryStorage() {
+  const map = new Map()
+  return {
+    map,
+    getItem(key) { return map.has(key) ? map.get(key) : null },
+    setItem(key, value) { map.set(key, value) }
+  }
+}
+
+test('localStorage driver round-trips one document per owner', async () => {
+  const storage = memoryStorage()
+  const store = createLocalStorageAIConfigStore(storage, 'acct-1')
+  await store.upsertConnection({
+    connectionId: 'lab',
+    providerKey: 'ollama',
+    baseUrl: 'http://127.0.0.1:11434/v1',
+    apiKeyCipher: '',
+    models: [{ modelId: 'llama3.2', enabled: true, isPrimary: true }]
+  })
+  const list = await store.listConnections()
+  assert.equal(list.length, 1)
+  assert.equal(list[0].providerKey, 'ollama')
+  assert.match([...storage.map.keys()][0], /acct-1$/)
+
+  const other = createLocalStorageAIConfigStore(storage, 'acct-2')
+  assert.equal((await other.listConnections()).length, 0)
+
+  await store.replaceModels('lab', [{ modelId: 'qwen2.5', enabled: false }])
+  assert.equal((await store.listConnections())[0].models[0].enabled, false)
+
+  await store.removeConnection('lab')
+  assert.equal((await store.listConnections()).length, 0)
+})
+
+test('localStorage driver tolerates a corrupt document', async () => {
+  const storage = memoryStorage()
+  storage.setItem('tm.ai.config.v1.acct-1', '{not json')
+  const store = createLocalStorageAIConfigStore(storage, 'acct-1')
+  assert.deepEqual(await store.listConnections(), [])
+})
