@@ -1,5 +1,23 @@
 # @tuanmjnh/tm-ai-client
 
+## 0.4.1
+
+### Patch Changes
+
+- Store drivers reject with `ai.store-failed` when the underlying client call
+  fails, instead of surfacing a raw driver error. Errors already classified by
+  the package (`ai.bad-shape`, the crypto codes) are rethrown untouched, and the
+  localStorage driver still tolerates corrupt documents.
+
+## 0.4.0
+
+### Minor Changes
+
+- Add per-account AI configuration stores for MongoDB, Supabase and
+  localStorage (`createMongoAIConfigStore` and siblings), `sealSecret` /
+  `openSecret`, and `mergeCatalog` for combining app-local rows with the hub
+  catalogue.
+
 ## 0.2.1
 
 ### Patch Changes

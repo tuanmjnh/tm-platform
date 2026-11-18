@@ -7,7 +7,7 @@ allowBuilds:
   vue-demi: true
 
 minimumReleaseAgeExclude:
-  - '@tuanmjnh/tm-ai-client@0.4.0'
+  - '@tuanmjnh/tm-ai-client@0.4.0 || 0.4.1'
   - '@tuanmjnh/tm-mongo@0.1.0'
   - '@tuanmjnh/tm-ui@0.1.3'
   - '@tuanmjnh/tm-core@0.1.2'
