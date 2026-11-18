@@ -54,10 +54,10 @@
     }
   },
   "devDependencies": {
-    "@vue/compiler-sfc": "3.5.44",
+    "@vue/compiler-sfc": "3.5.45",
     "esbuild": "^0.27.7",
-    "typescript": "^5.7.2",
-    "vue": "3.5.44",
+    "typescript": "^6.0.3",
+    "vue": "3.5.45",
     "@he-tree/vue": "^2.10.1",
     "sortablejs": "^1.15.2",
     "@vueuse/core": "^15.0.0",

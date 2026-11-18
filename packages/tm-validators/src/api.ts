@@ -11,7 +11,7 @@ export type PaginationParams = z.infer<typeof PaginationParamsSchema>
 export const ApiErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
-  details: z.record(z.array(z.string())).optional()
+  details: z.record(z.string(), z.array(z.string())).optional()
 })
 export type ApiError = z.infer<typeof ApiErrorSchema>
 
