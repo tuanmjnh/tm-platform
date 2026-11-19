@@ -2094,6 +2094,12 @@ export const TMCUT_PLAYBACK_DRIFT_TOLERANCE_SEC: number
 /** How long the picture may sit frozen before the preview reports a stall. */
 export const TMCUT_PLAYBACK_STALL_LIMIT_MS: number
 
+/** How long a corrective seek must be left alone before another may be issued. */
+export const TMCUT_PLAYBACK_SEEK_COOLDOWN_MS: number
+
+/** A desync past this is a jump (scrub/wrap/clip change), never drift. */
+export const TMCUT_PLAYBACK_JUMP_SEC: number
+
 export type CorePlaybackFollowAction = 'follow' | 'seek' | 'hold' | 'stalled'
 
 export interface CorePlaybackFollowPlan {
@@ -2117,8 +2123,12 @@ export function planPlaybackFollow(input: {
   readyState?: number
   seeking?: boolean
   frozenMs?: number
+  /** ms since this element was last given `currentTime`; omit for the old law. */
+  sinceSeekMs?: number
   toleranceSec?: number
   stallLimitMs?: number
+  seekCooldownMs?: number
+  jumpSec?: number
 }): CorePlaybackFollowPlan
 
 // --- Frame-index scheduler (V4 Phase 2, item 3) ---

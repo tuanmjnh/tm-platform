@@ -37,6 +37,32 @@ export const TMCUT_PLAYBACK_DRIFT_TOLERANCE_SEC = 0.3
 export const TMCUT_PLAYBACK_STALL_LIMIT_MS = 3000
 
 /**
+ * How long a corrective seek must be left alone before another one is worth
+ * issuing.
+ *
+ * A seek is not a correction, it is a RESTART of the element's load. Measured on
+ * the desktop host 2026-11-18: a 1440x2560 clip over `media://` was written
+ * `currentTime` ten times in four seconds, each write exactly one tolerance
+ * (+0.300 s) ahead of the element, every one from the preview's own follow loop.
+ * The picture never advanced by itself, because each write aborted the load the
+ * previous one started — so the next tick measured the same drift and sought
+ * again. The viewer saw ~0.7x with a `waiting` event every couple of frames,
+ * while the SAME file in a bare `<video>` played at 0.99x.
+ *
+ * A quarter of a second is longer than the load restart takes and far too short
+ * to be seen as a stall, so the element gets a window to play and the loop
+ * measures a real drift next time instead of its own interruption.
+ */
+export const TMCUT_PLAYBACK_SEEK_COOLDOWN_MS = 250
+
+/**
+ * A desync this large is a jump (a scrub, a loop wrap, a clip change), not the
+ * drift a corrective seek is for. It must land at once: holding on the old
+ * picture would show the wrong footage.
+ */
+export const TMCUT_PLAYBACK_JUMP_SEC = 1
+
+/**
  * @typedef {{ action: 'follow'|'seek'|'hold'|'stalled', playheadSec: number, reason: string }} PlaybackFollowPlan
  */
 
@@ -49,8 +75,12 @@ export const TMCUT_PLAYBACK_STALL_LIMIT_MS = 3000
  * @param {number} input.readyState  `HTMLMediaElement.readyState`
  * @param {boolean} [input.seeking]  `HTMLMediaElement.seeking`
  * @param {number} [input.frozenMs]  how long `elementSec` has failed to advance while playing
+ * @param {number} [input.sinceSeekMs] ms since this element was last given `currentTime`;
+ *   omit it and the law behaves as before, so a host that does not track seeks is unchanged
  * @param {number} [input.toleranceSec]
  * @param {number} [input.stallLimitMs]
+ * @param {number} [input.seekCooldownMs]
+ * @param {number} [input.jumpSec]
  * @returns {PlaybackFollowPlan}
  */
 export function planPlaybackFollow(input = {}) {
@@ -64,6 +94,13 @@ export function planPlaybackFollow(input = {}) {
     ? Number(input.stallLimitMs)
     : TMCUT_PLAYBACK_STALL_LIMIT_MS)
   const frozenMs = Math.max(0, finiteOr0(input.frozenMs))
+  const cooldown = Math.max(0, Number.isFinite(input.seekCooldownMs)
+    ? Number(input.seekCooldownMs)
+    : TMCUT_PLAYBACK_SEEK_COOLDOWN_MS)
+  const jump = Math.max(0, Number.isFinite(input.jumpSec)
+    ? Number(input.jumpSec)
+    : TMCUT_PLAYBACK_JUMP_SEC)
+  const sinceSeekMs = Number.isFinite(input.sinceSeekMs) ? Number(input.sinceSeekMs) : Infinity
 
   // A picture that has not moved for the whole budget is not "buffering" any
   // more: it is a stall the viewer must be told about, and the playhead must
@@ -85,7 +122,18 @@ export function planPlaybackFollow(input = {}) {
   // Presenting: the element has data and is not mid-seek, so a corrective seek
   // costs one range fetch and lands where the timeline says. This is the case
   // the tolerance was written for.
-  if (Math.abs(element - target) > tolerance) {
+  //
+  // The exception is a seek issued a moment ago. A write restarts the element's
+  // load, so within that window the drift being measured is the drift the last
+  // write CAUSED — repeating it is the self-sustaining loop measured on the
+  // desktop host (10 writes in 4 s, every one exactly one tolerance ahead).
+  // A desync past `jump` is not drift, though: a scrub or a loop wrap must land
+  // at once, cooldown or not.
+  const drift = Math.abs(element - target)
+  if (drift > tolerance) {
+    if (drift <= jump && sinceSeekMs < cooldown) {
+      return plan('hold', element, 'seek-cooldown')
+    }
     return plan('seek', target, 'drift')
   }
 
