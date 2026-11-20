@@ -1536,7 +1536,7 @@ export interface HubUpdateSiteInput {
 // provider credentials never leave the hub. Signed URLs are short-lived bearer
 // grants — never log or persist them. Objects are addressed by objectId; the
 // internal provider objectKey is not part of the public manifest view.
-export type HubStorageProviderKey = 'cloudflare_r2' | 'aws_s3' | 'supabase_storage'
+export type HubStorageProviderKey = 'cloudflare_r2' | 'aws_s3' | 'supabase_storage' | 'backblaze_b2' | 'filebase' | 'storj' | 's3_compatible' | 'uploadthing'
 
 export interface HubStorageCapabilities {
   directUpload: boolean
