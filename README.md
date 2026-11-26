@@ -20,6 +20,22 @@ these packages contains secrets, internal endpoints, or app-specific business lo
 
 Planned, only when a real consumer exists: `tm-nuxt`.
 
+## How apps consume these packages
+
+Two supported paths — see [`docs/installing-packages.md`](./docs/installing-packages.md)
+for the full comparison and the update procedure.
+
+| Path | Manifest | Refresh |
+|---|---|---|
+| npm registry | `"^0.4.2"` | `pnpm update` |
+| GitHub, pinned commit (current) | `git+https://github.com/tuanmjnh/tm-platform.git#<sha>&path:/packages/<pkg>` | change the SHA |
+| GitHub, branch | `...#main&path:/packages/<pkg>` | `pnpm update <pkg>` |
+
+`dist/` is committed so a GitHub install needs no build step. Without it pnpm
+runs the package's `publish` script during install, which tries to publish and
+fails. `node scripts/bump.mjs` rebuilds `dist/` with the version bump;
+`node scripts/pin-apps.mjs` writes the pinned specifiers for every app.
+
 ## Monorepo layout
 
 ```
@@ -110,6 +126,23 @@ Behaviour worth knowing:
 - `--build` forces a rebuild even when `dist/` looks current
 - a version already on the registry is skipped, so re-running is safe
 - a real publish refuses a dirty working tree unless `--force-tree` is passed
+
+npm publishing and GitHub installs coexist: apps that pin a commit do not care
+whether the version is on the registry, and an app can move back to a version
+range at any time.
+
+### GitHub releases
+
+```bash
+node scripts/bump.mjs              # version bump + dist rebuild for changed packages
+node scripts/bump.mjs --force X Y  # bump named packages with no source change
+node scripts/pin-apps.mjs          # print the pinned `pnpm add` line per app
+```
+
+The release order is bump → commit → **push** → pin. The push is not optional:
+a pin names a commit, and a commit that only exists locally cannot be installed
+by anyone else. `pin-apps.mjs` warns when the target is not on `origin/main`.
+
 
 ## Status
 

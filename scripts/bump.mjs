@@ -28,6 +28,7 @@ const argv = process.argv.slice(2)
 const flags = argv.filter(a => a.startsWith('--'))
 const positional = argv.filter(a => !a.startsWith('--'))
 const dryRun = flags.includes('--dry-run')
+const force = flags.includes('--force')
 
 const sinceIndex = argv.indexOf('--since')
 const since = sinceIndex >= 0 ? argv[sinceIndex + 1] : null
@@ -92,9 +93,22 @@ for (const file of files) {
   touched.set(folder, true)
 }
 
-if (touched.size === 0) {
+if (touched.size === 0 && !force) {
   info('no package changed — nothing to bump')
   process.exit(0)
+}
+
+// --force names packages explicitly: dist is being committed for the first time,
+// so there is no source change to detect, but the version must still move or the
+// pin would point at a commit whose dist is labelled with an older version.
+if (force) {
+  for (const folder of named) {
+    if (existsSync(join(PACKAGES_DIR, folder, 'package.json'))) touched.set(folder, true)
+  }
+  if (touched.size === 0) {
+    fail('--force needs package names, e.g. `bump.mjs --force tm-core tm-utils`')
+    process.exit(1)
+  }
 }
 
 const results = []

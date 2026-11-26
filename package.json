@@ -28,7 +28,9 @@
     "adopt:ui": "node scripts/adopt-tm-ui.mjs",
     "tm-ui:registry": "node scripts/switch-tm-ui.mjs registry",
     "tm-ui:link": "node scripts/switch-tm-ui.mjs link",
-    "release:publish:core": "node scripts/release.mjs publish tm-core"
+    "release:publish:core": "node scripts/release.mjs publish tm-core",
+    "release:bump": "node scripts/bump.mjs",
+    "release:pin": "node scripts/pin-apps.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.11"
