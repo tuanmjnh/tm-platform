@@ -1,0 +1,32 @@
+{
+  "name": "@tuanmjnh/tm-mongo",
+  "version": "0.1.1",
+  "description": "Reusable fail-fast MongoDB connection pooling for TM apps, injected with mongoose",
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*"
+  ],
+  "keywords": [
+    "tm",
+    "shared",
+    "platform",
+    "mongodb",
+    "mongoose"
+  ],
+  "author": "tuanmjnh",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

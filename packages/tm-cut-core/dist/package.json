@@ -1,0 +1,43 @@
+{
+  "name": "@tuanmjnh/tm-cut-core",
+  "version": "0.1.3",
+  "description": "TMCut pure editing engine (zero dependencies, runs on plain Node)",
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./generationAdapter": {
+      "types": "./generationAdapter.d.ts",
+      "import": "./generationAdapter.js",
+      "require": "./generationAdapter.cjs"
+    },
+    "./providerAdapter": {
+      "types": "./providerAdapter.d.ts",
+      "import": "./providerAdapter.js",
+      "require": "./providerAdapter.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*"
+  ],
+  "keywords": [
+    "tmcut",
+    "tmcut-core",
+    "video-editor",
+    "timeline",
+    "editing-engine",
+    "video-production"
+  ],
+  "author": "tuanmjnh",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

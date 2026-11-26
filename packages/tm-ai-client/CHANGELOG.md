@@ -1,5 +1,12 @@
 # @tuanmjnh/tm-ai-client
 
+
+## 0.4.2
+
+### Patch Changes
+
+- Rebuild for the next pinned release.
+
 ## 0.4.1
 
 ### Patch Changes

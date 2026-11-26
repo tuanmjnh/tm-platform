@@ -1,0 +1,31 @@
+{
+  "name": "@tuanmjnh/tm-validators",
+  "version": "0.2.1",
+  "description": "Shared Zod schemas and validation helpers for the TM platform",
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*"
+  ],
+  "keywords": [
+    "tm",
+    "shared",
+    "platform",
+    "validators"
+  ],
+  "author": "tuanmjnh",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

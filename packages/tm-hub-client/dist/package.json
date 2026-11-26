@@ -1,0 +1,37 @@
+{
+  "name": "@tuanmjnh/tm-hub-client",
+  "version": "1.2.2",
+  "description": "Unified TypeScript SDK for TM-Hub (IAM, Configs, Media, Storage Gateway, Notifications, Audit Logs & AI Relay)",
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*"
+  ],
+  "keywords": [
+    "tm-hub",
+    "iam",
+    "auth",
+    "sdk",
+    "client",
+    "rbac",
+    "audit-logs",
+    "notifications",
+    "cloudinary",
+    "storage"
+  ],
+  "author": "tuanmjnh",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@tuanmjnh/tm-ai-client",
+  "version": "0.4.2",
+  "description": "Provider-agnostic AI client and provider/model catalogue shared by TM apps",
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*"
+  ],
+  "keywords": [
+    "tm",
+    "shared",
+    "platform",
+    "ai"
+  ],
+  "author": "tuanmjnh",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

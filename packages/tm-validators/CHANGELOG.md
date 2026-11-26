@@ -1,5 +1,12 @@
 # @tuanmjnh/tm-validators
 
+
+## 0.2.1
+
+### Patch Changes
+
+- Rebuild for the next pinned release.
+
 ## 0.2.0
 
 ### Minor Changes

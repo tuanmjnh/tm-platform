@@ -1,5 +1,12 @@
 # @tuanmjnh/tm-utils
 
+
+## 0.1.1
+
+### Patch Changes
+
+- Rebuild for the next pinned release.
+
 ## 0.1.0
 
 ### Minor Changes

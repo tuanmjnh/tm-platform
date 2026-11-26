@@ -1,0 +1,31 @@
+{
+  "name": "@tuanmjnh/tm-utils",
+  "version": "0.1.1",
+  "description": "Pure runtime-agnostic utility functions for the TM platform",
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*"
+  ],
+  "keywords": [
+    "tm",
+    "shared",
+    "platform",
+    "trial"
+  ],
+  "author": "tuanmjnh",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
