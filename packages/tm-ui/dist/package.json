@@ -1,0 +1,45 @@
+{
+  "name": "@tuanmjnh/tm-ui",
+  "version": "0.2.1",
+  "description": "Shared Nuxt UI components for the TM platform",
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./style.css": "./style.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*"
+  ],
+  "keywords": [
+    "tm",
+    "shared",
+    "platform",
+    "ui",
+    "nuxt-ui"
+  ],
+  "author": "tuanmjnh",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@nuxt/ui": "^4.0.0",
+    "@vueuse/core": "^14.0.0 || ^15.0.0",
+    "vue": "^3.5.0",
+    "@he-tree/vue": "^2.10.1",
+    "sortablejs": "^1.15.0",
+    "@tuanmjnh/tm-core": "^0.1.2"
+  },
+  "peerDependenciesMeta": {
+    "@nuxt/ui": {
+      "optional": true
+    }
+  }
+}

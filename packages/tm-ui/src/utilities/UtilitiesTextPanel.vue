@@ -164,7 +164,7 @@ function loadSample() {
             size="xs"
             color="neutral"
             variant="soft"
-            @click="applyTransform(transform.toUpperCase)"
+            @click="applyTransform(toUpperCase)"
           >
             {{ t('utilities.text.actions.upper') }}
           </UButton>
@@ -172,7 +172,7 @@ function loadSample() {
             size="xs"
             color="neutral"
             variant="soft"
-            @click="applyTransform(transform.toLowerCase)"
+            @click="applyTransform(toLowerCase)"
           >
             {{ t('utilities.text.actions.lower') }}
           </UButton>
@@ -180,7 +180,7 @@ function loadSample() {
             size="xs"
             color="neutral"
             variant="soft"
-            @click="applyTransform(transform.toCapitalize)"
+            @click="applyTransform(toCapitalize)"
           >
             {{ t('utilities.text.actions.capitalize') }}
           </UButton>
@@ -188,7 +188,7 @@ function loadSample() {
             size="xs"
             color="neutral"
             variant="soft"
-            @click="applyTransform(transform.toSentenceCase)"
+            @click="applyTransform(toSentenceCase)"
           >
             {{ t('utilities.text.actions.sentence') }}
           </UButton>
@@ -197,7 +197,7 @@ function loadSample() {
             color="neutral"
             variant="soft"
             class="font-mono"
-            @click="applyTransform(transform.toCamelCase)"
+            @click="applyTransform(toCamelCase)"
           >
             {{ t('utilities.text.actions.camel') }}
           </UButton>
@@ -206,7 +206,7 @@ function loadSample() {
             color="neutral"
             variant="soft"
             class="font-mono"
-            @click="applyTransform(transform.toPascalCase)"
+            @click="applyTransform(toPascalCase)"
           >
             {{ t('utilities.text.actions.pascal') }}
           </UButton>
@@ -215,7 +215,7 @@ function loadSample() {
             color="neutral"
             variant="soft"
             class="font-mono"
-            @click="applyTransform(transform.toKebabCase)"
+            @click="applyTransform(toKebabCase)"
           >
             {{ t('utilities.text.actions.kebab') }}
           </UButton>
@@ -224,7 +224,7 @@ function loadSample() {
             color="neutral"
             variant="soft"
             class="font-mono"
-            @click="applyTransform(transform.toSnakeCase)"
+            @click="applyTransform(toSnakeCase)"
           >
             {{ t('utilities.text.actions.snake') }}
           </UButton>
@@ -233,7 +233,7 @@ function loadSample() {
             color="neutral"
             variant="soft"
             class="font-mono"
-            @click="applyTransform(transform.toConstantCase)"
+            @click="applyTransform(toConstantCase)"
           >
             {{ t('utilities.text.actions.constant') }}
           </UButton>
@@ -241,7 +241,7 @@ function loadSample() {
             size="xs"
             color="neutral"
             variant="soft"
-            @click="applyTransform(transform.toAlternatingCase)"
+            @click="applyTransform(toAlternatingCase)"
           >
             {{ t('utilities.text.actions.alternating') }}
           </UButton>
@@ -249,7 +249,7 @@ function loadSample() {
             size="xs"
             color="neutral"
             variant="soft"
-            @click="applyTransform(transform.toInverseCase)"
+            @click="applyTransform(toInverseCase)"
           >
             {{ t('utilities.text.actions.inverse') }}
           </UButton>
@@ -271,7 +271,7 @@ function loadSample() {
               size="xs"
               color="primary"
               variant="soft"
-              @click="applyTransform(transform.removeVietnameseAccents)"
+              @click="applyTransform(removeVietnameseAccents)"
             >
               {{ t('utilities.text.actions.removeAccents') }}
             </UButton>
@@ -279,7 +279,7 @@ function loadSample() {
               size="xs"
               color="primary"
               variant="soft"
-              @click="applyTransform(transform.toSlug)"
+              @click="applyTransform(slugify)"
             >
               {{ t('utilities.text.actions.slug') }}
             </UButton>
@@ -299,7 +299,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.cleanSpaces)"
+              @click="applyTransform(cleanSpaces)"
             >
               {{ t('utilities.text.actions.cleanSpaces') }}
             </UButton>
@@ -307,7 +307,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.removeEmptyLines)"
+              @click="applyTransform(removeEmptyLines)"
             >
               {{ t('utilities.text.actions.removeEmptyLines') }}
             </UButton>
@@ -315,7 +315,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.removeDuplicateLines)"
+              @click="applyTransform(removeDuplicateLines)"
             >
               {{ t('utilities.text.actions.removeDuplicates') }}
             </UButton>
@@ -324,7 +324,7 @@ function loadSample() {
               color="neutral"
               variant="soft"
               icon="i-lucide-arrow-down-a-z"
-              @click="applyTransform(transform.sortLinesAsc)"
+              @click="applyTransform(sortLinesAsc)"
             >
               {{ t('utilities.text.actions.sortAsc') }}
             </UButton>
@@ -333,7 +333,7 @@ function loadSample() {
               color="neutral"
               variant="soft"
               icon="i-lucide-arrow-down-z-a"
-              @click="applyTransform(transform.sortLinesDesc)"
+              @click="applyTransform(sortLinesDesc)"
             >
               {{ t('utilities.text.actions.sortDesc') }}
             </UButton>
@@ -341,7 +341,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.reverseLines)"
+              @click="applyTransform(reverseLines)"
             >
               {{ t('utilities.text.actions.reverseLines') }}
             </UButton>
@@ -349,7 +349,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.reverseCharacters)"
+              @click="applyTransform(reverseCharacters)"
             >
               {{ t('utilities.text.actions.reverseCharacters') }}
             </UButton>
@@ -357,7 +357,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.numberLines)"
+              @click="applyTransform(numberLines)"
             >
               {{ t('utilities.text.actions.numberLines') }}
             </UButton>
@@ -377,7 +377,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.encodeBase64)"
+              @click="applyTransform(encodeBase64Safe)"
             >
               {{ t('utilities.text.actions.base64Encode') }}
             </UButton>
@@ -385,7 +385,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.decodeBase64)"
+              @click="applyTransform(decodeBase64Safe)"
             >
               {{ t('utilities.text.actions.base64Decode') }}
             </UButton>
@@ -393,7 +393,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.encodeUrl)"
+              @click="applyTransform(encodeUrlSafe)"
             >
               {{ t('utilities.text.actions.urlEncode') }}
             </UButton>
@@ -401,7 +401,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.decodeUrl)"
+              @click="applyTransform(decodeUrlSafe)"
             >
               {{ t('utilities.text.actions.urlDecode') }}
             </UButton>
@@ -409,7 +409,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.escapeHtml)"
+              @click="applyTransform(escapeHtmlSafe)"
             >
               {{ t('utilities.text.actions.htmlEscape') }}
             </UButton>
@@ -417,7 +417,7 @@ function loadSample() {
               size="xs"
               color="neutral"
               variant="soft"
-              @click="applyTransform(transform.unescapeHtml)"
+              @click="applyTransform(unescapeHtmlSafe)"
             >
               {{ t('utilities.text.actions.htmlUnescape') }}
             </UButton>

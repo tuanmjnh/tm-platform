@@ -1,8 +1,11 @@
 node_modules/
-dist/
 .output/
 .nuxt/
 *.log
 .DS_Store
 Thumbs.db
+
+# dist/ is intentionally committed: the apps install these packages straight
+# from GitHub, where no build step runs. `node scripts/bump.mjs` rebuilds it
+# whenever a version changes, so the committed output matches the version.
 

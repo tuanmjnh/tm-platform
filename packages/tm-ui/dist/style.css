@@ -1,0 +1,143 @@
+.tree-node--with-tree-line{position:relative}.tree-line{position:absolute;background-color:#bbb}.tree-vline{width:1px;top:0;bottom:0}.tree-hline{height:1px;top:50%;width:10px}.tree-node:focus-visible{outline:2px solid #005fcc;outline-offset:-2px}@media (forced-colors: active){.tree-node:focus-visible{outline:2px solid Highlight}.tree-line{background-color:CanvasText}}@media (prefers-reduced-motion: reduce){.he-tree,.he-tree *{transition:none!important}}.he-tree--rtl{direction:rtl}.he-tree-drag-placeholder{background:#ddf2f9;border:1px dashed #00d9ff;height:22px;width:100%}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}.he-tree__open-icon{cursor:pointer;-webkit-user-select:none;user-select:none;display:inline-block}.he-tree__open-icon.open{transform:rotate(90deg)}.he-tree__open-icon svg{width:1em}
+
+
+[data-v-tmui-passwordinput]::-ms-reveal {
+  display: none;
+}
+
+
+/*
+  Scale only the content area, and never while an interactive child is pressed:
+  inputs, buttons, labels and role=button (dropdown triggers) opt out.
+*/
+.active-scale[data-v-tmui-swipecard]:active:not(:has(input:active)):not(:has(button:active)):not(:has(label:active)):not(:has([role=button]:active)) {
+  transform: scale(0.99);
+}
+
+
+.he-tree-drag-placeholder {
+  background: #3b82f6 !important;
+  height: 2px !important;
+}
+.tree-line {
+  background-color: transparent;
+}
+.tree-vline {
+  background-color: #e5e7eb;
+}
+.dark .tree-vline {
+  background-color: #374151;
+}
+.tree-hline {
+  background-color: #e5e7eb;
+}
+.dark .tree-hline {
+  background-color: #374151;
+}
+
+/* Rules the package components rely on that are not Tailwind utilities.
+   Kept here, not in any app's stylesheet, so a component behaves the same in
+   every consumer: these classes were originally app-local and would silently
+   render unstyled anywhere that did not copy the rule. */
+
+/* Fixed page header (Page.vue): frosts the ambient decor behind the panel while
+   the body scrolls beneath it. Falls back to a near-opaque solid when
+   backdrop-filter is unsupported, so text contrast never depends on decor. */
+.tm-chrome-glass {
+  background-color: var(--tm-chrome-glass, var(--tm-chrome-overlay, var(--ui-bg)));
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: inset 0 1px 0 var(--tm-inset-highlight, rgb(255 255 255 / 0.06));
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .tm-chrome-glass {
+    background-color: var(--tm-chrome-overlay, var(--ui-bg));
+  }
+}
+
+/* Backdrop layers (AppBackdrop.vue). Each app defines the --tm-* colours; the
+   geometry and stacking live here so the markup cannot drift per consumer. */
+.tm-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tm-aurora,
+.tm-beam,
+.tm-orb {
+  position: absolute;
+  pointer-events: none;
+}
+
+.tm-orb-1 {
+  top: -22vmin;
+  right: -14vmin;
+  width: min(52rem, 74vw);
+  aspect-ratio: 1;
+  background-image:
+    radial-gradient(circle at 34% 28%, var(--tm-orb-specular, rgba(255, 255, 255, 0.4)) 0%, transparent 34%),
+    radial-gradient(circle at 48% 46%, var(--tm-orb-1, rgba(94, 106, 210, 0.28)) 0%, transparent 68%);
+}
+
+.tm-orb-2 {
+  bottom: -26vmin;
+  left: -18vmin;
+  width: min(44rem, 66vw);
+  aspect-ratio: 1;
+  background-image:
+    radial-gradient(circle at 38% 30%, var(--tm-orb-specular, rgba(255, 255, 255, 0.4)) 0%, transparent 36%),
+    radial-gradient(circle at 50% 50%, var(--tm-orb-2, rgba(34, 211, 238, 0.18)) 0%, transparent 70%);
+}
+
+.tm-iso-grid {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 420px;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--tm-grid-line, rgba(255, 255, 255, 0.05)) 0 1px,
+      transparent 1px 48px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--tm-grid-line, rgba(255, 255, 255, 0.05)) 0 1px,
+      transparent 1px 48px
+    );
+  transform: perspective(700px) rotateX(58deg) scale(1.4);
+  transform-origin: top center;
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 62%);
+  mask-image: linear-gradient(to bottom, black 0%, transparent 62%);
+}
+
+.tm-chrome-overlay {
+  background-color: var(--tm-chrome-overlay, var(--ui-bg));
+}
+
+.glass-blur {
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass-blur {
+    background-color: var(--ui-bg);
+  }
+}
+
+.glass-panel {
+  position: relative;
+  border-radius: var(--tm-radius-panel, 0.5rem);
+  border: 1px solid var(--tm-hairline, var(--ui-border));
+  background-color: var(--tm-surface, var(--ui-bg));
+  background-image: var(--tm-surface-sheen, none);
+  box-shadow:
+    inset 0 1px 0 var(--tm-inset-highlight, rgb(255 255 255 / 0.06)),
+    var(--tm-panel-shadow, none);
+}
+

@@ -504,11 +504,12 @@ const hashAlgorithms = ['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512']
 const hashResult = ref('')
 const hashLoading = ref(false)
 
-async function runHash() {
+// runHash is imported from tm-core; the panel only owns the busy state.
+async function computeHash() {
   if (!hashInput.value.trim()) return
   hashLoading.value = true
   try {
-    hashResult.value = await hashText(hashAlgo.value, hashInput.value)
+    hashResult.value = await runHash(hashAlgo.value, hashInput.value)
   } finally {
     hashLoading.value = false
   }
