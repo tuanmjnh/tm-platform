@@ -26,18 +26,27 @@ export function toLowerCase(text: string): string {
   return text.toLowerCase()
 }
 
+// `\b` and `\w` are ASCII-only in JavaScript: `đ` and `â` never matched, so a
+// Vietnamese word was cased in the wrong places (`đây` → `đâY`) and the
+// helpers that strip non-`\w` characters deleted the letters outright. These
+// use Unicode property escapes so any script is treated as a letter.
 export function toCapitalize(text: string): string {
-  return text.replace(/\b\w+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+  // Title case: every word starts upper and continues lower, so a shouting
+  // sentence becomes readable rather than staying loud.
+  return text
+    .toLowerCase()
+    .replace(/(^|\P{L})(\p{L})/gu, (_, before: string, letter: string) => before + letter.toUpperCase())
 }
 
 export function toSentenceCase(text: string): string {
-  return text.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, letter => letter.toUpperCase())
+  const lower = text.toLowerCase()
+  return lower.replace(/(^|[.!?]\s+)(\p{L})/gu, (_, before: string, letter: string) => before + letter.toUpperCase())
 }
 
 function splitWords(text: string): string[] {
   return text
     .trim()
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
     .split(/[\s-_]+/)
     .filter(Boolean)
 }
@@ -58,7 +67,7 @@ export function toKebabCase(text: string): string {
     .trim()
     .replace(/([a-z])([A-Z])/g, '$1-$2')
     .replace(/[\s_]+/g, '-')
-    .replace(/[^\w-]+/g, '')
+    .replace(/[^\p{L}\p{N}-]+/gu, '')
     .toLowerCase()
 }
 
@@ -67,7 +76,7 @@ export function toSnakeCase(text: string): string {
     .trim()
     .replace(/([a-z])([A-Z])/g, '$1_$2')
     .replace(/[\s-]+/g, '_')
-    .replace(/[^\w_]+/g, '')
+    .replace(/[^\p{L}\p{N}_]+/gu, '')
     .toLowerCase()
 }
 

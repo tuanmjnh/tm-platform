@@ -1,6 +1,6 @@
 {
   "name": "@tuanmjnh/tm-core",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Framework-free runtime helpers shared by the TM platform",
   "type": "module",
   "main": "./dist/index.cjs",

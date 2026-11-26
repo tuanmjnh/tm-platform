@@ -14,6 +14,20 @@ assert.equal(toLowerCase('AB'), 'ab', 'lower')
 assert.equal(toCapitalize('hello world'), 'Hello World', 'each word capitalised')
 assert.equal(toSentenceCase('hello. world'), 'Hello. World', 'sentence starts capitalised')
 
+// `\b` and `\w` are ASCII-only in JavaScript, so a Vietnamese or accented word
+// was mangled rather than capitalised: `đây` became `đâY` because `đ` and `â`
+// never matched `\w`, and the case helpers that strip non-`\w` characters dropped
+// the letters entirely (`đây → y`). These pin the Unicode behaviour.
+assert.equal(toCapitalize('đây là câu'), 'Đây Là Câu', 'capitalise keeps đ and â')
+assert.equal(toCapitalize('tiếng việt rất đẹp'), 'Tiếng Việt Rất Đẹp', 'every Vietnamese word')
+assert.equal(toCapitalize('ñandú es'), 'Ñandú Es', 'accented letters outside Vietnamese too')
+assert.equal(toCapitalize('ĐÂY LÀ CÂU'), 'Đây Là Câu', 'a shouting sentence is normalised, not left loud')
+assert.equal(toSentenceCase('ĐÂY LÀ CÂU. THỨ HAI ĐÂY!'), 'Đây là câu. Thứ hai đây!', 'only the sentence start stays capital')
+assert.equal(toSentenceCase('tiếng việt. rất đẹp'), 'Tiếng việt. Rất đẹp', 'sentence case after a full stop')
+assert.equal(toCamelCase('đây là câu'), 'đâyLàCâu', 'camel case keeps Vietnamese letters')
+assert.equal(toCamelCase('tiếng việt'), 'tiếngViệt', 'camel case does not strip diacritics')
+assert.equal(toKebabCase('Tiếng Việt'), 'tiếng-việt', 'kebab keeps Vietnamese letters')
+
 assert.equal(toCamelCase('hello world-example'), 'helloWorldExample', 'camel')
 assert.equal(toPascalCase('hello world'), 'HelloWorld', 'pascal')
 assert.equal(toKebabCase('helloWorld'), 'hello-world', 'kebab splits camel humps')

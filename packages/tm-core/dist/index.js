@@ -68,13 +68,14 @@ function toLowerCase(text) {
   return text.toLowerCase();
 }
 function toCapitalize(text) {
-  return text.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  return text.toLowerCase().replace(/(^|\P{L})(\p{L})/gu, (_, before, letter) => before + letter.toUpperCase());
 }
 function toSentenceCase(text) {
-  return text.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, (letter) => letter.toUpperCase());
+  const lower = text.toLowerCase();
+  return lower.replace(/(^|[.!?]\s+)(\p{L})/gu, (_, before, letter) => before + letter.toUpperCase());
 }
 function splitWords(text) {
-  return text.trim().replace(/[^\w\s-]/g, "").split(/[\s-_]+/).filter(Boolean);
+  return text.trim().replace(/[^\p{L}\p{N}\s-]/gu, "").split(/[\s-_]+/).filter(Boolean);
 }
 function toCamelCase(text) {
   const words = splitWords(text);
@@ -86,10 +87,10 @@ function toPascalCase(text) {
   return splitWords(text).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
 }
 function toKebabCase(text) {
-  return text.trim().replace(/([a-z])([A-Z])/g, "$1-$2").replace(/[\s_]+/g, "-").replace(/[^\w-]+/g, "").toLowerCase();
+  return text.trim().replace(/([a-z])([A-Z])/g, "$1-$2").replace(/[\s_]+/g, "-").replace(/[^\p{L}\p{N}-]+/gu, "").toLowerCase();
 }
 function toSnakeCase(text) {
-  return text.trim().replace(/([a-z])([A-Z])/g, "$1_$2").replace(/[\s-]+/g, "_").replace(/[^\w_]+/g, "").toLowerCase();
+  return text.trim().replace(/([a-z])([A-Z])/g, "$1_$2").replace(/[\s-]+/g, "_").replace(/[^\p{L}\p{N}_]+/gu, "").toLowerCase();
 }
 function toConstantCase(text) {
   return toSnakeCase(text).toUpperCase();
