@@ -24,3 +24,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
+      # Architecture boundary of the video engine: no vue, nuxt, electron, node
+      # builtins or browser globals. `pnpm test` does not run it, and the app
+      # that consumes the engine cannot run it either — its checkout has no
+      # sibling copy of this repository.
+      - run: pnpm --dir packages/tm-cut-core run check
