@@ -21,14 +21,17 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const REPO_SLUG = 'tuanmjnh/tm-platform'
 const PACKAGES_DIR = join(ROOT, 'packages')
 
-// Apps that consume the shared packages. Kept here rather than discovered so a
-// new app is an explicit addition, not a silent omission.
+// Apps that consume the shared packages. Each entry names the directory whose
+// package.json holds the dependency — for tm-social-hub that is the workspace
+// member, not the repo root. Kept here rather than discovered so a new app is an
+// explicit addition, not a silent omission.
 const APPS = [
   { name: 'tm-hub', dir: '../tm-hub' },
   { name: 'tm-tools', dir: '../tm-tools' },
   { name: 'tm-studio', dir: '../tm-studio' },
   { name: 'tm-websites/tm-cms', dir: '../tm-websites/tm-cms' },
-  { name: 'tm-social-hub', dir: '../tm-social-hub' }
+  { name: 'tm-websites/cms-base', dir: '../tm-websites/tm-shared/nuxt-layers/cms-base' },
+  { name: 'tm-social-hub', dir: '../tm-social-hub/apps/extension' }
 ]
 
 const argv = process.argv.slice(2)

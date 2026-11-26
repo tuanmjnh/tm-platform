@@ -26,6 +26,33 @@ with `You cannot publish over the previously published versions`.
 `node scripts/bump.mjs` rebuilds `dist/` whenever a version changes, so the
 committed output always matches the version it is labelled with.
 
+## The layout differs from the npm tarball
+
+This is the one thing that breaks when an app switches install mode, and it
+breaks silently until a test reads a package file.
+
+| | npm tarball | GitHub install |
+|---|---|---|
+| Entry | `node_modules/@tuanmjnh/tm-ui/ModelSelect.js` | `node_modules/@tuanmjnh/tm-ui/dist/ModelSelect.js` |
+| `package.json` | published from `dist/`, so paths are flat | repository manifest, `main` points at `./dist/…` |
+| Types | `index.d.ts` at the root | `dist/index.d.ts` |
+
+npm publishes the *contents* of `dist/`; GitHub ships the *repository*, where
+`dist/` is a subdirectory. No manifest setting changes that —
+`publishConfig.directory` only affects the npm tarball.
+
+Code that imports by package name is unaffected. Anything reading a package
+file by path must include `dist/`:
+
+- test helpers that slice the bundle (`tests/unit/helpers/core-module.ts`)
+- specs that assert on a shipped module's text
+- Electron main-process imports, because Vite resolution is not available there
+- documentation links into the installed tree
+
+When an app moves between the two modes, search for `node_modules/@tuanmjnh/`
+in tests, `electron/` and `docs/` before declaring the switch done.
+
+
 ## Pinned commit (current)
 
 ```json
