@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { fileURLToPath } from 'node:url'
@@ -138,10 +139,61 @@ function requiresCleanTree() {
   return false
 }
 
+// Where pnpm 10+ keeps registry credentials. It is NOT `~/.npmrc`: `pnpm login`
+// writes this file, while `npm whoami`/`npm publish` only read `~/.npmrc`. Left
+// alone, a fresh `pnpm login` looks signed in to pnpm and signed out to npm, and
+// the publish fails with E401 against a token that is perfectly valid.
+function pnpmAuthFile() {
+  if (process.platform === 'win32') {
+    const base = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
+    return join(base, 'pnpm', 'config', 'auth.ini')
+  }
+  if (process.platform === 'darwin') return join(homedir(), 'Library', 'Preferences', 'pnpm', 'auth.ini')
+  return join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'pnpm', 'auth.ini')
+}
+
+function readAuthToken(file) {
+  try {
+    const match = readFileSync(file, 'utf8').match(/\/\/registry\.npmjs\.org\/:_authToken=(.+)/)
+    return match ? match[1].trim() : null
+  } catch {
+    return null
+  }
+}
+
+// Copies the pnpm token into `~/.npmrc`, replacing a stale or missing one, so
+// the `npm publish` this script runs can authenticate. Returns the written
+// token, or null when npm already holds the same value.
+function syncPnpmTokenToNpmrc() {
+  const token = readAuthToken(pnpmAuthFile())
+  if (!token) return null
+  const npmrc = join(homedir(), '.npmrc')
+  const current = existsSync(npmrc) ? readFileSync(npmrc, 'utf8') : ''
+  const existing = current.match(/\/\/registry\.npmjs\.org\/:_authToken=(.+)/)
+  if (existing && existing[1].trim() === token) return null
+  const withoutToken = current
+    .split('\n')
+    .filter(line => !/^\s*\/\/registry\.npmjs\.org\/:_authToken=/.test(line))
+    .join('\n')
+    .replace(/\n{2,}$/, '\n')
+    .trimEnd()
+  const next = `${withoutToken ? `${withoutToken}\n` : ''}//registry.npmjs.org/:_authToken=${token}\n`
+  // A file holding a credential is owner-only on POSIX; the default umask
+  // would make it world-readable.
+  writeFileSync(npmrc, next, { mode: 0o600 })
+  return token
+}
+
 function whoami() {
   const result = capture('npm', ['whoami'])
-  if (result.status !== 0) return null
-  return result.stdout.split('\n').pop()
+  if (result.status === 0) return result.stdout.split('\n').pop()
+  // npm rejected whatever `~/.npmrc` holds. If pnpm is signed in, import its
+  // token and retry once, so a `pnpm login` is enough to publish.
+  if (syncPnpmTokenToNpmrc()) {
+    const retry = capture('npm', ['whoami'])
+    if (retry.status === 0) return retry.stdout.split('\n').pop()
+  }
+  return null
 }
 
 function buildPackages(packages) {
@@ -170,7 +222,9 @@ function commandLogin() {
     info(`already signed in as ${paint(1, user)}`)
     return 0
   }
-  const result = run('npm', ['login'], { stdio: 'inherit' })
+  // `pnpm login` writes the credential where pnpm reads it (`auth.ini`); npm
+  // alone would miss a pnpm session. `whoami` above copies it across.
+  const result = run('pnpm', ['login'], { stdio: 'inherit' })
   if (result.status !== 0) {
     fail('login failed')
     return result.status || 1
